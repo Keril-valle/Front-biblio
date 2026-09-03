@@ -1,0 +1,26 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --una-red: #CD1719;
+    --una-red-digital: #990000;
+    --una-blue: #034991;
+    --una-gray: #A7A7A9;
+    --una-gray-digital: #585757;
+    --surface-white: #FFFFFF;
+    --surface-gray-50: #F7F6F4;
+    --border-gray: #E3E1DA;
+    --text-primary: #262624;
+    --text-secondary: #6B6A64;
+  }
+
+  body {
+    font-family: 'Source Sans 3', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-primary);
+    background-color: var(--surface-gray-50);
+  }
+
+  .font-goudy {
+    font-family: 'Sorts Mill Goudy', 'Goudy Bookletter 1911', Georgia, serif;
+  }
+}

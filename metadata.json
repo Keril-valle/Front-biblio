@@ -1,0 +1,6 @@
+{
+  "name": "Sistema de Estadísticas - Subsistema de Bibliotecas UNA",
+  "description": "Pantalla de entrada y selección de sede para la Biblioteca Nayuribe (Nicoya) y Biblioteca Rose Marie Ruiz Bravo (Liberia) de la Universidad Nacional de Costa Rica Sede Regional Chorotega.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
