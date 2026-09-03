@@ -13,7 +13,9 @@ import {
   UsuarioDto,
 } from '../types';
 
-const BASE_URL = '/api';
+const BASE_URL =
+  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ??
+  '/api';
 
 const TOKEN_KEY = 'biblioteca_token';
 const SESSION_KEY = 'biblioteca_session';
