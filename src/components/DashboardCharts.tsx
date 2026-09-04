@@ -18,7 +18,6 @@ import {
   CicloDto,
   ComposicionDto,
   KpisDto,
-  PorCategoriaDto,
 } from '../types';
 
 export interface BarChartDataItem {
@@ -84,7 +83,7 @@ interface DashboardChartsProps {
 
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const isJefatura = role === 'jefa' || role === 'jefatura';
-  const [comparisonMode, setComparisonMode] = useState<'ciclos' | 'campus' | 'anual'>('ciclos');
+  const [comparisonMode, setComparisonMode] = useState<'ciclos' | 'anual' | 'campus'>('ciclos');
   const [ciclos, setCiclos] = useState<CicloDto[]>([]);
   const [cicloId, setCicloId] = useState<number | ''>('');
   const [modulos, setModulos] = useState<{ id: number; nombre: string }[]>([]);
@@ -97,6 +96,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const [composition, setComposition] = useState<ComposicionDto[]>([]);
   const [categorias, setCategorias] = useState<CategoriaDto[]>([]);
   const [loading, setLoading] = useState(true);
+  // Totales por serie para mostrarlos junto al gráfico y que el usuario
+  // pueda verificar que las barras suman lo mismo que las tarjetas KPI.
+  const [totalesComparativo, setTotalesComparativo] = useState<Record<string, number>>({});
 
   const cycleName = (c: CicloDto) => `${c.numero === 1 ? 'I' : 'II'} Ciclo ${c.anio}`;
 
@@ -113,6 +115,16 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         setCategorias(cats);
         const primerCiclo = cic[0];
         if (primerCiclo) setCicloId(primerCiclo.id);
+        // Por defecto se muestra el ciclo vigente (no el primero de la
+        // lista), para que los KPIs coincidan con el banner del dashboard.
+        api
+          .cicloActual()
+          .then((actual) => {
+            if (cic.some((c) => c.id === actual.id)) setCicloId(actual.id);
+          })
+          .catch(() => {
+            /* sin ciclo vigente: se conserva el primero */
+          });
       })
       .catch(() => setLoading(false));
   }, []);
@@ -127,7 +139,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     const sid = sedeId === '' ? undefined : Number(sedeId);
 
     api
-      .kpis(cid, sid)
+      .kpis(cid, sid, mid)
       .then(setKpis)
       .catch(() => undefined);
 
@@ -138,82 +150,157 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       .finally(() => setLoading(false));
   }, [cicloId, moduloId, sedeId]);
 
-  // Comparativo por categoría según el modo (ciclos vs sedes).
+  // Comparativo por categoría según el modo (ciclos vs anual vs campus).
+  // Todas las ramas respetan los filtros de módulo y campus, y publican los
+  // totales por serie en `totalesComparativo` para mostrarlos en pantalla.
   useEffect(() => {
-    if (cicloId === '') return;
+    if (cicloId === '' || ciclos.length === 0) return;
 
     const cid = cicloId === '' ? undefined : Number(cicloId);
     const mid = moduloId === '' ? undefined : Number(moduloId);
     const sid = sedeId === '' ? undefined : Number(sedeId);
+    let cancelado = false;
 
     if (comparisonMode === 'ciclos') {
+      // Agrupa por número de ciclo (I / II) sumando todos los años: así el
+      // comparativo sigue siendo correcto aunque haya varios años lectivos.
       Promise.all(
-        ciclos.map((c) =>
-          api.porCategoria(c.id, mid, sid),
-        ),
+        ciclos.map(async (c) => ({
+          ciclo: c,
+          rows: await api.porCategoria(c.id, mid, sid),
+        })),
       )
         .then((results) => {
+          if (cancelado) return;
           const map = new Map<string, BarChartDataItem>();
-          results.forEach((rows: PorCategoriaDto[], idx) => {
-            const label = cycleName(ciclos[idx]);
+          const totales = { iCiclo: 0, iiCiclo: 0 };
+          results.forEach(({ ciclo, rows }) => {
+            const clave = ciclo.numero === 1 ? 'iCiclo' : 'iiCiclo';
             rows.forEach((row) => {
               const entry = map.get(row.categoriaNombre) ?? {
                 categoria: row.categoriaNombre,
+                iCiclo: 0,
+                iiCiclo: 0,
               };
-              if (idx === 0) entry.iCiclo = row.total;
-              else entry.iiCiclo = row.total;
+              entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
               map.set(row.categoriaNombre, entry);
+              totales[clave] += row.total;
             });
           });
-          setBarData(Array.from(map.values()));
+          // Orden descendente por total combinado para lectura rápida.
+          const ordenado = Array.from(map.values()).sort(
+            (a, b) =>
+              ((b.iCiclo as number) ?? 0) +
+              ((b.iiCiclo as number) ?? 0) -
+              (((a.iCiclo as number) ?? 0) + ((a.iiCiclo as number) ?? 0)),
+          );
+          setBarData(ordenado);
+          setTotalesComparativo(totales);
         })
-        .catch(() => setBarData([]));
+        .catch(() => {
+          if (!cancelado) {
+            setBarData([]);
+            setTotalesComparativo({});
+          }
+        });
+    } else if (comparisonMode === 'campus') {
+      // Comparación por campus (solo disponible con "Ambos campus"):
+      // desglose por categoría Nicoya vs Liberia para el ciclo (y módulo)
+      // seleccionado, ordenado por total combinado descendente.
+      const consultarCampus = async (idSede?: number) =>
+        api.porCategoria(cid, mid, idSede);
+      Promise.all([consultarCampus(1), consultarCampus(2)])
+        .then(([rowsNicoya, rowsLiberia]) => {
+          if (cancelado) return;
+          const map = new Map<string, BarChartDataItem>();
+          const totales = { nicoya: 0, liberia: 0 };
+          rowsNicoya.forEach((row) => {
+            const entry = map.get(row.categoriaNombre) ?? {
+              categoria: row.categoriaNombre,
+              nicoya: 0,
+              liberia: 0,
+            };
+            entry.nicoya = ((entry.nicoya as number) ?? 0) + row.total;
+            map.set(row.categoriaNombre, entry);
+            totales.nicoya += row.total;
+          });
+          rowsLiberia.forEach((row) => {
+            const entry = map.get(row.categoriaNombre) ?? {
+              categoria: row.categoriaNombre,
+              nicoya: 0,
+              liberia: 0,
+            };
+            entry.liberia = ((entry.liberia as number) ?? 0) + row.total;
+            map.set(row.categoriaNombre, entry);
+            totales.liberia += row.total;
+          });
+          const datos = Array.from(map.values()).sort(
+            (a, b) =>
+              ((b.nicoya as number) ?? 0) +
+              ((b.liberia as number) ?? 0) -
+              (((a.nicoya as number) ?? 0) + ((a.liberia as number) ?? 0)),
+          );
+          setBarData(datos);
+          setTotalesComparativo(totales);
+        })
+        .catch(() => {
+          if (!cancelado) {
+            setBarData([]);
+            setTotalesComparativo({});
+          }
+        });
     } else if (comparisonMode === 'anual') {
       api
         .porAnio(mid, sid)
         .then((rows) => {
+          if (cancelado) return;
           const map = new Map<string, Record<string, number | undefined>>();
+          const totales: Record<string, number> = {};
           rows.forEach((row) => {
             const entry = map.get(row.categoriaNombre) ?? {};
-            entry[String(row.anio)] = row.total;
+            entry[String(row.anio)] = ((entry[String(row.anio)] as number) ?? 0) + row.total;
             map.set(row.categoriaNombre, entry);
+            totales[String(row.anio)] = (totales[String(row.anio)] ?? 0) + row.total;
           });
-          setBarData(
-            Array.from(map.entries()).map(([cat, anioData]) => ({
+          const ordenado = Array.from(map.entries())
+            .map(([cat, anioData]) => ({
               categoria: cat,
               ...anioData,
-            })),
-          );
+            }))
+            .sort((a, b) => {
+              const totalA = anios.reduce((acc, an) => acc + ((a[String(an)] as number) ?? 0), 0);
+              const totalB = anios.reduce((acc, an) => acc + ((b[String(an)] as number) ?? 0), 0);
+              return totalB - totalA;
+            });
+          setBarData(ordenado);
+          setTotalesComparativo(totales);
         })
-        .catch(() => setBarData([]));
-    } else {
-      api
-        .porCategoria(cid, mid, sid)
-        .then((rows) => setBarData(rows.map((r) => ({ categoria: r.categoriaNombre }))))
-        .catch(() => setBarData([]));
-
-      api
-        .comparativoSedes(cid)
-        .then((sedes) => {
-          if (sedes.length === 0) {
+        .catch(() => {
+          if (!cancelado) {
             setBarData([]);
-            return;
+            setTotalesComparativo({});
           }
-          const nicoya = sedes.find((s) => s.sedeNombre === 'Nicoya')?.total ?? 0;
-          const liberia = sedes.find((s) => s.sedeNombre === 'Liberia')?.total ?? 0;
-          setBarData([
-            { categoria: 'Total General', nicoya, liberia },
-          ]);
-        })
-        .catch(() => setBarData([]));
+        });
     }
+    return () => {
+      cancelado = true;
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comparisonMode, cicloId, moduloId, sedeId]);
+  }, [comparisonMode, cicloId, moduloId, sedeId, ciclos]);
 
   const totalCompositionCount = composition.reduce((acc, curr) => acc + curr.valor, 0);
+  // En modo anual el panel "Total del Módulo" muestra el acumulado de todos
+  // los años (ya filtrado por módulo y campus) en vez del ciclo seleccionado.
+  const totalAnualModulo: number = Object.keys(totalesComparativo).reduce<number>(
+    (acc, k) => acc + (totalesComparativo[k] ?? 0),
+    0,
+  );
+  const totalModuloMostrado =
+    comparisonMode === 'anual' ? totalAnualModulo : totalCompositionCount;
 
   // Altura dinámica: una fila por categoría con espacio para cada serie agrupada.
-  const seriesCount = comparisonMode === 'anual' ? Math.max(anios.length, 1) : 2;
+  const seriesCount =
+    comparisonMode === 'anual' ? Math.max(anios.length, 1) : 2;
   const barChartHeight = Math.max(
     BAR_CHART_MIN_HEIGHT,
     barData.length * (BAR_ROW_BASE_HEIGHT + seriesCount * BAR_ROW_SERIES_HEIGHT),
@@ -229,6 +316,35 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     ? [0, 4, 4, 0]
     : [4, 4, 0, 0];
   const barMaxSize = usarBarrasLaterales ? 22 : 40;
+
+  // Ámbito del encabezado: con "Ambos campus" se muestra el Subsistema;
+  // al filtrar un campus concreto se muestra ese campus y su biblioteca.
+  const nombreAmbito =
+    sedeId === 1
+      ? 'Campus Nicoya — Biblioteca Nayuribe'
+      : sedeId === 2
+      ? 'Campus Liberia — Biblioteca Rose Marie Ruiz Bravo'
+      : 'Subsistema de Bibliotecas Chorotega';
+  const nombreModuloSeleccionado =
+    moduloId === ''
+      ? 'Todos los módulos'
+      : (modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado');
+  const cicloSeleccionado = ciclos.find((c) => c.id === cicloId);
+  const nombreCampusSeleccionado =
+    sedeId === 1 ? 'Campus Nicoya' : sedeId === 2 ? 'Campus Liberia' : 'Ambos campus';
+  // Resumen de totales por serie para verificación visual inmediata.
+  const resumenTotalesComparativo =
+    comparisonMode === 'ciclos'
+      ? `I Ciclo: ${(totalesComparativo.iCiclo ?? 0).toLocaleString()} · II Ciclo: ${(totalesComparativo.iiCiclo ?? 0).toLocaleString()}`
+      : comparisonMode === 'campus'
+      ? `Nicoya: ${(totalesComparativo.nicoya ?? 0).toLocaleString()} · Liberia: ${(totalesComparativo.liberia ?? 0).toLocaleString()}`
+      : anios.map((a) => `${a}: ${(totalesComparativo[String(a)] ?? 0).toLocaleString()}`).join(' · ');
+  const tituloEstadistica =
+    comparisonMode === 'ciclos'
+      ? `${nombreModuloSeleccionado}: I Ciclo y II Ciclo`
+      : comparisonMode === 'campus'
+      ? `${nombreModuloSeleccionado}: Biblioteca Nayuribe y Biblioteca Rose Marie Ruiz Bravo`
+      : `${nombreModuloSeleccionado}: comparativa por año lectivo`;
 
   return (
     <div className="space-y-6">
@@ -276,10 +392,15 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             </label>
             <select
               value={sedeId}
-              onChange={(e) => setSedeId(e.target.value === "" ? "" : Number(e.target.value))}
+              onChange={(e) => {
+                const next = e.target.value === "" ? "" : Number(e.target.value);
+                setSedeId(next);
+                // La comparación por campus solo tiene sentido con ambos campus.
+                if (next !== "" && comparisonMode === 'campus') setComparisonMode('ciclos');
+              }}
               className="px-3 py-2 rounded-lg border border-[#E3E1DA] text-sm bg-white outline-none focus:border-[#990000]"
             >
-              <option value="">Todos los campus</option>
+              <option value="">Ambos campus</option>
               <option value={1}>Nicoya</option>
               <option value={2}>Liberia</option>
             </select>
@@ -297,7 +418,10 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           <p className="text-3xl font-bold text-[#262624] font-mono mt-2">
             {kpis.totalAtenciones.toLocaleString()}
           </p>
-          <p className="text-[11px] text-[#6B6A64] mt-1">Suma de atenciones registradas</p>
+          <p className="text-[11px] text-[#6B6A64] mt-1">
+            {cicloSeleccionado ? `${cycleName(cicloSeleccionado)} · ` : ''}
+            {nombreModuloSeleccionado} · {nombreCampusSeleccionado}
+          </p>
         </div>
 
         <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
@@ -311,23 +435,67 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         </div>
       </section>
 
+      {/* Apartado: total del módulo cuando se selecciona uno solo */}
+      {moduloId !== '' && (
+        <section className="bg-[#990000]/5 border border-[#990000]/20 rounded-2xl p-5 shadow-xs">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[#990000] text-white flex items-center justify-center shrink-0">
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
+                  />
+                </svg>
+              </div>
+              <div>
+                <span className="text-xs font-bold uppercase tracking-wider text-[#990000]">
+                  Total del Módulo
+                </span>
+                <h2 className="text-lg font-semibold text-[#262624] font-goudy leading-tight">
+                  {modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado'}
+                </h2>
+              </div>
+            </div>
+            <div className="text-right">
+              <p className="text-3xl font-bold text-[#990000] font-mono">
+                {totalModuloMostrado.toLocaleString()}
+              </p>
+              <p className="text-[11px] text-[#6B6A64]">
+                {comparisonMode === 'anual'
+                  ? 'atenciones del módulo en todos los años'
+                  : 'atenciones del módulo en el ciclo seleccionado'}
+              </p>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* 2 & 3. Grouped Bar Chart */}
       <section className="bg-white p-6 rounded-2xl border border-[#E3E1DA] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E3E1DA]">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#990000]">
-              Visualización de Barras Agrupadas
+              {nombreAmbito}
             </span>
             <h2 className="text-base font-semibold text-[#262624] font-goudy mt-0.5">
-              {comparisonMode === 'ciclos'
-                ? 'Comparativo por Ciclo: I Ciclo vs II Ciclo'
-                : comparisonMode === 'campus'
-                ? 'Estadística por Campus: Biblioteca Nayuribe y Biblioteca Rose Marie Ruiz Bravo'
-                : 'Estadística Anual: Comparativa por Año Lectivo'}
+              {tituloEstadistica}
             </h2>
             <p className="text-xs text-[#6B6A64] mt-0.5">
               Comparación exacta de magnitudes discretas para evaluar demanda por servicio.
             </p>
+            {barData.length > 0 && (
+              <p className="text-xs font-semibold text-[#262624] mt-1 font-mono">
+                {resumenTotalesComparativo}
+              </p>
+            )}
           </div>
 
           <div className="flex items-center gap-1 bg-[#F7F6F4] p-1 rounded-xl border border-[#E3E1DA]">
@@ -341,7 +509,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             >
               I/II Ciclo
             </button>
-            {isJefatura && (
+            {isJefatura && sedeId === '' && (
               <button
                 onClick={() => setComparisonMode('campus')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
@@ -430,14 +598,14 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                     <>
                       <Bar
                         dataKey="iCiclo"
-                        name="I Ciclo Lectivo"
+                        name="I Ciclo"
                         fill="#990000"
                         radius={barRadius}
                         maxBarSize={barMaxSize}
                       />
                       <Bar
                         dataKey="iiCiclo"
-                        name="II Ciclo Lectivo"
+                        name="II Ciclo"
                         fill="#034991"
                         radius={barRadius}
                         maxBarSize={barMaxSize}

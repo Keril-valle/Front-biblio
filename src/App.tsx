@@ -6,12 +6,28 @@ import { LoginModalView } from './components/LoginModalView';
 import { CampusDashboardPreview } from './components/CampusDashboardPreview';
 import { HomeHeaderNav } from './components/HomeHeaderNav';
 import { CampusId, UserSession, ViewState } from './types';
-import { api, clearSession, setSession } from './api/client';
+import { api, clearSession, getSession, setSession } from './api/client';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
   const [selectedCampus, setSelectedCampus] = useState<CampusId | null>(null);
   const [session, setSessionState] = useState<UserSession | null>(null);
+
+  // Rehidratar sesión desde localStorage al recargar (evita pedir login en F5).
+  useEffect(() => {
+    const guardada = getSession<UserSession>();
+    if (guardada && guardada.accessToken) {
+      setSessionState(guardada);
+      setSelectedCampus(guardada.campus);
+      setCurrentView('dashboard');
+      // Validar token contra el back en local; si expiró, volver a landing.
+      api.me().catch(() => {
+        clearSession();
+        setSessionState(null);
+        setCurrentView('landing');
+      });
+    }
+  }, []);
 
   // Sync state with URL search params / hash for testability
   useEffect(() => {
@@ -64,7 +80,11 @@ export default function App() {
   };
 
   const handleDirectAccess = (campusId: CampusId) => {
-    // Acceso demo: inicia sesión con la cuenta de jefa (única jefa del sistema).
+    // Acceso demo con la cuenta de jefa. La jefa opera en el campus por el
+    // que entró (la tarjeta clicada): esa sede queda como campus de la sesión
+    // y como destino de sus registros (el backend acepta sedeId solo para
+    // jefa y lo valida). Así "si me meto a Liberia, ahí se guarda y ahí
+    // aparece" en las estadísticas filtradas por Liberia.
     const email = 'jefa@una.cr';
     api
       .login(email, 'Jefa1234!')
@@ -73,8 +93,8 @@ export default function App() {
           accessToken: res.accessToken,
           email: res.usuario.email,
           role: res.usuario.rol,
-          campus: res.usuario.sedeId === 1 ? 'nicoya' : 'liberia',
-          campusId: res.usuario.sedeId,
+          campus: campusId,
+          campusId: campusId === 'nicoya' ? 1 : 2,
           name: res.usuario.nombreCompleto,
           userId: res.usuario.id,
         };
@@ -85,19 +105,8 @@ export default function App() {
         updateUrl('dashboard', mapped.campus);
       })
       .catch(() => {
-        const defaultSession: UserSession = {
-          accessToken: '',
-          email: `directo.${campusId}@una.cr`,
-          role: 'jefa',
-          campus: campusId,
-          campusId: campusId === 'nicoya' ? 1 : 2,
-          name: 'Nuria Zamora Chavarria',
-          userId: '',
-        };
-        setSessionState(defaultSession);
-        setSelectedCampus(campusId);
-        setCurrentView('dashboard');
-        updateUrl('dashboard', campusId);
+        // Sin fallback de sesión vacía: si el login demo falla, no se entra
+        // al dashboard sin token (evita 401 silenciosos y datos mock).
       });
   };
 
@@ -127,7 +136,7 @@ export default function App() {
           {/* 1. Hero Principal */}
           <HeroSection onDirectAccess={handleDirectAccess} />
 
-          {/* 2. Selector de Sede */}
+          {/* 2. Selector de Campus */}
           <CampusSelector
             onSelectCampus={handleSelectCampus}
             onDirectAccess={handleDirectAccess}

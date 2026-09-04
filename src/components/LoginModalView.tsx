@@ -44,12 +44,25 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
 
     try {
       const res = await api.login(finalEmail, password || demoPassword);
+      // Campus de la sesión: la jefa opera donde entró (tarjeta de este
+      // login) y sus registros van a esa sede; la bibliotecóloga siempre
+      // queda en la sede real de su cuenta (JWT), ignore la tarjeta.
+      const rolReal = res.usuario.rol as string;
+      const entraComoJefa = rolReal === 'jefa' || rolReal === 'jefatura';
       onLoginSuccess({
         accessToken: res.accessToken,
         email: res.usuario.email,
         role: res.usuario.rol,
-        campus: res.usuario.sedeId === 1 ? 'nicoya' : 'liberia',
-        campusId: res.usuario.sedeId,
+        campus: entraComoJefa
+          ? campusId
+          : res.usuario.sedeId === 1
+            ? 'nicoya'
+            : 'liberia',
+        campusId: entraComoJefa
+          ? campusId === 'nicoya'
+            ? 1
+            : 2
+          : res.usuario.sedeId,
         name: res.usuario.nombreCompleto || finalName,
         userId: res.usuario.id,
       });
@@ -198,7 +211,10 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
                 onClick={() =>
                   handleLoginWithRole(
                     'bibliotecologa',
-                    `bibliotecologa.${campusId}@una.cr`,
+                    // OJO: el seed usa "bibliotecologo" (masculino) en Liberia.
+                    campusId === 'liberia'
+                      ? 'bibliotecologo.liberia@una.cr'
+                      : `bibliotecologa.${campusId}@una.cr`,
                     'Licda. María Elena Solís',
                   )
                 }

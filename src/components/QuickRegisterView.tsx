@@ -16,6 +16,10 @@ interface QuickRegisterViewProps {
 
 export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session }) => {
   const campus = CAMPUSES[session.campus];
+  // La jefa ve el historial de ambos campus (el backend no la restringe);
+  // la bibliotecóloga solo el de su sede.
+  const esJefatura = session.role === 'jefa' || (session.role as string) === 'jefatura';
+  const nombreAlcanceHistorial = esJefatura ? 'ambos campus' : campus.libraryName;
 
   const [modulos, setModulos] = useState<ModuloDto[]>([]);
   const [categorias, setCategorias] = useState<CategoriaDto[]>([]);
@@ -29,6 +33,14 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
   const [cantidadSecundaria, setCantidadSecundaria] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
+  const [pagina, setPagina] = useState(1);
+  const POR_PAGINA = 5;
+  const totalPaginas = Math.max(1, Math.ceil(records.length / POR_PAGINA));
+  const paginaSegura = Math.min(pagina, totalPaginas);
+  const visibles = records.slice(
+    (paginaSegura - 1) * POR_PAGINA,
+    paginaSegura * POR_PAGINA,
+  );
   const [successMsg, setSuccessMsg] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -121,6 +133,9 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
         cantidad: Math.max(1, count),
         cantidadSecundaria: cantidadSecundaria ? Number(cantidadSecundaria) : undefined,
         observaciones: notes.trim() || undefined,
+        // La jefa envía la sede donde está (sesión); el backend la valida y
+        // la usa. La bibliotecóloga nunca la envía: cae en su sede del JWT.
+        ...(esJefatura ? { sedeId: session.campusId } : {}),
       });
 
       const nuevoRecord: AttendanceRecord = {
@@ -141,7 +156,10 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
       };
 
       setRecords([nuevoRecord, ...records]);
-      setSuccessMsg(`✓ Registro guardado correctamente (${categoriaSeleccionada?.nombre} — ${count}).`);
+      setPagina(1);
+      setSuccessMsg(
+        `✓ Registro guardado correctamente (${categoriaSeleccionada?.nombre} — ${count} · Campus ${campus.name}).`,
+      );
       setNotes('');
       setCount(1);
       setCantidadSecundaria('');
@@ -186,6 +204,15 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
               <strong className="text-[#262624]">{session.name}</strong>
             </span>
           </div>
+
+          {/* Destino del registro = campus donde estás (sesión). La jefa entra
+              por la tarjeta de un campus y ahí se guarda (envía su sedeId, el
+              backend solo se lo acepta a ella); la bibliotecóloga siempre cae
+              en su sede del JWT. */}
+          <p className="text-xs text-[#585757] bg-[#F7F6F4] border border-[#E3E1DA] rounded-lg px-3 py-2">
+            Estás en: <strong className="text-[#990000]">Campus {campus.name} — {campus.libraryName}</strong>
+            {' '}y aquí se guardará este registro.
+          </p>
 
           {successMsg && (
             <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center justify-between">
@@ -351,7 +378,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
               Registros Recientes
             </h3>
             <p className="text-xs text-[#6B6A64] mb-4">
-              Historial de las últimas atenciones registradas en {campus.libraryName}:
+              Historial de las últimas atenciones registradas en {nombreAlcanceHistorial}:
             </p>
 
             {records.length === 0 ? (
@@ -360,7 +387,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
               </p>
             ) : (
               <div className="space-y-3">
-                {records.map((rec) => (
+                {visibles.map((rec) => (
                   <div
                     key={rec.id}
                     className="p-3 rounded-xl border border-[#E3E1DA] bg-[#F7F6F4]/50 text-xs space-y-1"
@@ -376,6 +403,31 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                     {rec.notes && <p className="text-[11px] text-[#6B6A64] italic pt-1">"{rec.notes}"</p>}
                   </div>
                 ))}
+                {records.length > POR_PAGINA && (
+                  <div className="flex items-center justify-between pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                      disabled={paginaSegura === 1}
+                      className="px-3 py-1.5 text-xs font-semibold text-[#990000] rounded-lg hover:bg-[#990000]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#990000]"
+                    >
+                      ← Anterior
+                    </button>
+                    <span className="text-[11px] text-[#6B6A64] font-mono">
+                      Página {paginaSegura} de {totalPaginas}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setPagina((p) => Math.min(totalPaginas, p + 1))
+                      }
+                      disabled={paginaSegura === totalPaginas}
+                      className="px-3 py-1.5 text-xs font-semibold text-[#990000] rounded-lg hover:bg-[#990000]/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-[#990000]"
+                    >
+                      Siguiente →
+                    </button>
+                  </div>
+                )}
               </div>
             )}
           </div>

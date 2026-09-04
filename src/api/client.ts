@@ -175,6 +175,7 @@ export const api = {
     cantidad: number;
     cantidadSecundaria?: number;
     observaciones?: string;
+    sedeId?: number;
   }) =>
     request<RegistroDto>('/registros', {
       method: 'POST',
@@ -191,10 +192,11 @@ export const api = {
   },
 
   // ===== Dashboard =====
-  kpis: (cicloId?: number, sedeId?: number) => {
+  kpis: (cicloId?: number, sedeId?: number, moduloId?: number) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (sedeId) params.set('sedeId', String(sedeId));
+    if (moduloId) params.set('moduloId', String(moduloId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<KpisDto>(`/dashboard/kpis${qs}`);
   },
@@ -214,10 +216,13 @@ export const api = {
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<ComposicionDto[]>(`/dashboard/composicion${qs}`);
   },
-  comparativoSedes: (cicloId?: number) =>
-    request<ComparativoSedesDto[]>(
-      `/dashboard/comparativo-sedes${cicloId ? `?cicloId=${cicloId}` : ''}`,
-    ),
+  comparativoSedes: (cicloId?: number, moduloId?: number) => {
+    const params = new URLSearchParams();
+    if (cicloId) params.set('cicloId', String(cicloId));
+    if (moduloId) params.set('moduloId', String(moduloId));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request<ComparativoSedesDto[]>(`/dashboard/comparativo-sedes${qs}`);
+  },
   porAnio: (moduloId?: number, sedeId?: number, anio?: number) => {
     const params = new URLSearchParams();
     if (moduloId) params.set('moduloId', String(moduloId));

@@ -162,7 +162,11 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
               </label>
               <select
                 value={newCatModule}
-                onChange={(e) => setNewCatModule(Number(e.target.value))}
+                onChange={(e) =>
+                  setNewCatModule(
+                    e.target.value === '' ? '' : Number(e.target.value),
+                  )
+                }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000] bg-white"
               >
                 <option value="">Seleccionar módulo...</option>

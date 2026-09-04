@@ -129,6 +129,7 @@ export interface ComparativoSedesDto {
 
 export interface PorAnioDto {
   categoriaNombre: string;
+  moduloNombre: string;
   anio: number;
   total: number;
   totalPersonas: number;

@@ -36,7 +36,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     },
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      label: 'Estadísticas',
       icon: (
         <svg className="w-5 h-5 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
           <path strokeLinecap="round" strokeLinejoin="round" d="M3 13.125C3 12.504 3.504 12 4.125 12h2.25c.621 0 1.125.504 1.125 1.125v6.75C7.5 20.496 6.996 21 6.375 21h-2.25A1.125 1.125 0 013 19.875v-6.75zM9.75 8.625c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125v11.25c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V8.625zM16.5 4.125c0-.621.504-1.125 1.125-1.125h2.25C20.496 3 21 3.504 21 4.125v15.75c0 .621-.504 1.125-1.125 1.125h-2.25a1.125 1.125 0 01-1.125-1.125V4.125z" />
@@ -85,6 +85,11 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
     },
   ];
 
+  // Las estadísticas son solo para jefatura: la bibliotecóloga solo registra.
+  const visibleMainNavItems = mainNavItems.filter(
+    (item) => item.id !== 'dashboard' || isJefatura,
+  );
+
   const handleNavClick = (tab: SidebarTab) => {
     onTabChange(tab);
     setMobileMenuOpen(false);
@@ -116,7 +121,7 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
           <span className="block px-3 py-1 text-[10px] font-bold uppercase tracking-widest text-[#585757]">
             MENÚ PRINCIPAL
           </span>
-          {mainNavItems.map((item) => {
+          {visibleMainNavItems.map((item) => {
             const isActive = activeTab === item.id;
             return (
               <button
@@ -160,32 +165,34 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             })}
           </div>
         )}
+        {/* 3b. Acciones de sesión (justo debajo del menú, sin bajar al fondo) */}
+        <div className="p-4 pt-2 border-t border-[#E3E1DA] space-y-2">
+          <button
+            onClick={onChangeCampus}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:bg-white hover:text-[#990000] transition-colors border border-[#E3E1DA]"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+            </svg>
+            <span>Cambiar de Campus</span>
+          </button>
+
+          <button
+            onClick={onLogout}
+            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:text-[#262624] hover:bg-[#E3E1DA]/50 transition-colors"
+          >
+            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+            </svg>
+            <span>Cerrar sesión</span>
+          </button>
+        </div>
       </div>
 
       {/* 4. Bottom Sidebar Footer */}
-      <div className="p-4 border-t border-[#E3E1DA] space-y-3 bg-[#F7F6F4]/50">
-        <button
-          onClick={onChangeCampus}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:bg-white hover:text-[#990000] transition-colors border border-[#E3E1DA]"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-          <span>Cambiar de Campus</span>
-        </button>
-
-        <button
-          onClick={onLogout}
-          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:text-[#262624] hover:bg-[#E3E1DA]/50 transition-colors"
-        >
-          <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-          </svg>
-          <span>Cerrar sesión</span>
-        </button>
-
+      <div className="p-4 border-t border-[#E3E1DA] bg-[#F7F6F4]/50">
         {/* Discrete Signature Footer */}
-        <p className="text-[11px] text-[#6B6A64] text-center pt-2 border-t border-[#E3E1DA] leading-tight">
+        <p className="text-[11px] text-[#6B6A64] text-center leading-tight">
           Sistema de Estadísticas · Campus Regional Chorotega, UNA
         </p>
       </div>

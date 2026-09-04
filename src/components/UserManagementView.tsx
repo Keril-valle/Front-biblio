@@ -152,7 +152,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
           Filtrar:
         </span>
         {[
-          { key: 'todas', label: 'Todos los campus' },
+          { key: 'todas', label: 'Ambos campus' },
           { key: 'nicoya', label: 'Campus Nicoya' },
           { key: 'liberia', label: 'Campus Liberia' },
           { key: 'bibliotecologa', label: 'Bibliotecólogas' },
@@ -417,20 +417,20 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
                 </div>
               )}
 
-              {/* Modal Action Buttons (Cancelar first, Crear cuenta solid red last) */}
+              {/* Modal Action Buttons (acción primero, Cancelar después: orden de Tab) */}
               <div className="pt-4 border-t border-[#E3E1DA] flex items-center justify-end gap-3">
+                <button
+                  type="submit"
+                  className="px-5 py-2.5 bg-[#990000] hover:bg-[#CD1719] active:bg-[#7D0000] text-white text-xs font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#990000] focus:ring-offset-2"
+                >
+                  Crear cuenta
+                </button>
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
                   className="px-4 py-2 text-xs font-semibold text-[#585757] hover:text-[#262624] transition-colors"
                 >
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 bg-[#990000] hover:bg-[#CD1719] active:bg-[#7D0000] text-white text-xs font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#990000] focus:ring-offset-2"
-                >
-                  Crear cuenta
                 </button>
               </div>
             </form>
