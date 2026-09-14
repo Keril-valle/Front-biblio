@@ -165,27 +165,42 @@ export const SidebarNav: React.FC<SidebarNavProps> = ({
             })}
           </div>
         )}
-        {/* 3b. Acciones de sesión (justo debajo del menú, sin bajar al fondo) */}
+        {/* 3b. Acciones de sesión: la jefa puede cambiar de campus;
+            la bibliotecóloga solo sale (su sede viene del JWT) */}
         <div className="p-4 pt-2 border-t border-[#E3E1DA] space-y-2">
-          <button
-            onClick={onChangeCampus}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:bg-white hover:text-[#990000] transition-colors border border-[#E3E1DA]"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-            </svg>
-            <span>Cambiar de Campus</span>
-          </button>
+          {isJefatura ? (
+            <button
+              onClick={onChangeCampus}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:bg-white hover:text-[#990000] transition-colors border border-[#E3E1DA]"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
+              </svg>
+              <span>Cambiar de Campus</span>
+            </button>
+          ) : (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:bg-white hover:text-[#990000] transition-colors border border-[#E3E1DA]"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              <span>Salir</span>
+            </button>
+          )}
 
-          <button
-            onClick={onLogout}
-            className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:text-[#262624] hover:bg-[#E3E1DA]/50 transition-colors"
-          >
-            <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
-            </svg>
-            <span>Cerrar sesión</span>
-          </button>
+          {isJefatura && (
+            <button
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium text-[#585757] hover:text-[#262624] hover:bg-[#E3E1DA]/50 transition-colors"
+            >
+              <svg className="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15.75 9V5.25A2.25 2.25 0 0013.5 3h-6a2.25 2.25 0 00-2.25 2.25v13.5A2.25 2.25 0 007.5 21h6a2.25 2.25 0 002.25-2.25V15M12 9l-3 3m0 0l3 3m-3-3h12.75" />
+              </svg>
+              <span>Cerrar sesión</span>
+            </button>
+          )}
         </div>
       </div>
 

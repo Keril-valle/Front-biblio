@@ -21,29 +21,23 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  const handleLoginWithRole = async (
-    selectedRole: 'bibliotecologa' | 'jefatura',
-    userEmail?: string,
-    userName?: string,
-  ) => {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
     setIsLoading(true);
     setErrorMsg('');
-    const finalEmail =
-      userEmail ||
-      (email.trim()
-        ? email.includes('@')
-          ? email.trim()
-          : `${email.trim()}@una.cr`
-        : `usuario.${campusId}@una.cr`);
-    const finalName =
-      userName ||
-      (selectedRole === 'jefatura'
-        ? 'Nuria Zamora Chavarria (Jefatura)'
-        : 'Licda. María Elena Solís (Bibliotecóloga)');
-    const demoPassword = selectedRole === 'jefatura' ? 'Jefa1234!' : 'Biblio1234!';
+
+    if (!email.trim() || !password.trim()) {
+      setErrorMsg('Por favor ingrese su correo institucional y contraseña.');
+      setIsLoading(false);
+      return;
+    }
+
+    const finalEmail = email.includes('@')
+      ? email.trim()
+      : `${email.trim()}@una.cr`;
 
     try {
-      const res = await api.login(finalEmail, password || demoPassword);
+      const res = await api.login(finalEmail, password);
       // Campus de la sesión: la jefa opera donde entró (tarjeta de este
       // login) y sus registros van a esa sede; la bibliotecóloga siempre
       // queda en la sede real de su cuenta (JWT), ignore la tarjeta.
@@ -63,7 +57,7 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
             ? 1
             : 2
           : res.usuario.sedeId,
-        name: res.usuario.nombreCompleto || finalName,
+        name: res.usuario.nombreCompleto,
         userId: res.usuario.id,
       });
     } catch (err) {
@@ -72,18 +66,6 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setErrorMsg('');
-
-    if (!email.trim() || !password.trim()) {
-      setErrorMsg('Por favor ingrese su correo institucional y contraseña.');
-      return;
-    }
-
-    await handleLoginWithRole('jefatura', email.trim(), undefined);
   };
 
   return (
@@ -146,7 +128,7 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
               <input
                 type="email"
                 required
-                placeholder={`usuario.${campusId}@una.cr`}
+                placeholder="nombre.apellido@una.cr"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full pl-10 pr-3.5 py-2.5 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624] placeholder:text-[#A7A7A9] transition-colors"
@@ -196,49 +178,6 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
               `Ingresar a ${campus.libraryName}`
             )}
           </button>
-
-          {/* Quick Demo Access Divider */}
-          <div className="pt-3 border-t border-[#E3E1DA]">
-            <span className="block text-[11px] font-semibold text-[#585757] uppercase tracking-wider text-center mb-2 flex items-center justify-center gap-1.5">
-              <svg className="w-3.5 h-3.5 text-[#990000]" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M11.983 1.907a.75.75 0 00-1.292-.657l-8.5 9.5A.75.75 0 002.75 12h5.572l-1.305 6.093a.75.75 0 001.292.657l8.5-9.5A.75.75 0 0017.25 8h-5.572l1.305-6.093z" />
-              </svg>
-              Acceso Inmediato en 1-Clic
-            </span>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  handleLoginWithRole(
-                    'bibliotecologa',
-                    // OJO: el seed usa "bibliotecologo" (masculino) en Liberia.
-                    campusId === 'liberia'
-                      ? 'bibliotecologo.liberia@una.cr'
-                      : `bibliotecologa.${campusId}@una.cr`,
-                    'Licda. María Elena Solís',
-                  )
-                }
-                className="py-2 px-3 bg-[#F7F6F4] hover:bg-[#990000]/10 hover:border-[#990000] border border-[#E3E1DA] rounded-lg text-xs font-medium text-[#262624] transition-colors text-left flex items-center justify-between"
-              >
-                <span>Acceso Bibliotecóloga</span>
-                <span className="text-[10px] text-[#990000] font-bold">Entrar →</span>
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  handleLoginWithRole(
-                    'jefatura',
-                    'jefa@una.cr',
-                    'Nuria Zamora Chavarria',
-                  )
-                }
-                className="py-2 px-3 bg-[#F7F6F4] hover:bg-[#990000]/10 hover:border-[#990000] border border-[#E3E1DA] rounded-lg text-xs font-medium text-[#262624] transition-colors text-left flex items-center justify-between"
-              >
-                <span>Acceso Jefa de Biblioteca</span>
-                <span className="text-[10px] text-[#990000] font-bold">Entrar →</span>
-              </button>
-            </div>
-          </div>
         </form>
 
         {/* Footer info inside modal */}

@@ -7,6 +7,7 @@ import { CampusDashboardPreview } from './components/CampusDashboardPreview';
 import { HomeHeaderNav } from './components/HomeHeaderNav';
 import { CampusId, UserSession, ViewState } from './types';
 import { api, clearSession, getSession, setSession } from './api/client';
+import { switchCampusSession } from './utils/campus';
 
 export default function App() {
   const [currentView, setCurrentView] = useState<ViewState>('landing');
@@ -79,37 +80,6 @@ export default function App() {
     updateUrl('login', campusId);
   };
 
-  const handleDirectAccess = (campusId: CampusId) => {
-    // Acceso demo con la cuenta de jefa. La jefa opera en el campus por el
-    // que entró (la tarjeta clicada): esa sede queda como campus de la sesión
-    // y como destino de sus registros (el backend acepta sedeId solo para
-    // jefa y lo valida). Así "si me meto a Liberia, ahí se guarda y ahí
-    // aparece" en las estadísticas filtradas por Liberia.
-    const email = 'jefa@una.cr';
-    api
-      .login(email, 'Jefa1234!')
-      .then((res) => {
-        const mapped: UserSession = {
-          accessToken: res.accessToken,
-          email: res.usuario.email,
-          role: res.usuario.rol,
-          campus: campusId,
-          campusId: campusId === 'nicoya' ? 1 : 2,
-          name: res.usuario.nombreCompleto,
-          userId: res.usuario.id,
-        };
-        setSession(res.accessToken, mapped);
-        setSessionState(mapped);
-        setSelectedCampus(mapped.campus);
-        setCurrentView('dashboard');
-        updateUrl('dashboard', mapped.campus);
-      })
-      .catch(() => {
-        // Sin fallback de sesión vacía: si el login demo falla, no se entra
-        // al dashboard sin token (evita 401 silenciosos y datos mock).
-      });
-  };
-
   const handleLoginSuccess = (userSession: UserSession) => {
     setSession(userSession.accessToken, userSession);
     setSessionState(userSession);
@@ -125,6 +95,26 @@ export default function App() {
     updateUrl('landing', null);
   };
 
+  // Salir (bibliotecóloga): vuelve al inicio sin cerrar la sesión.
+  // La sesión sigue activa: al recargar se vuelve al panel.
+  const handleSalir = () => {
+    setSelectedCampus(null);
+    setCurrentView('landing');
+    updateUrl('landing', null);
+  };
+
+  // La jefa cambia de campus sin cerrar sesión: muta su campus de sesión
+  // y entra de un solo al panel del otro campus.
+  const handleChangeCampus = () => {
+    if (!session) return;
+    const updated = switchCampusSession(session);
+    setSession(updated.accessToken, updated);
+    setSessionState(updated);
+    setSelectedCampus(updated.campus);
+    setCurrentView('dashboard');
+    updateUrl('dashboard', updated.campus);
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-[#F7F6F4] text-[#262624] antialiased selection:bg-[#990000] selection:text-white">
       {/* Main Content Router */}
@@ -134,12 +124,11 @@ export default function App() {
           <HomeHeaderNav />
 
           {/* 1. Hero Principal */}
-          <HeroSection onDirectAccess={handleDirectAccess} />
+          <HeroSection />
 
           {/* 2. Selector de Campus */}
           <CampusSelector
             onSelectCampus={handleSelectCampus}
-            onDirectAccess={handleDirectAccess}
             selectedCampus={selectedCampus}
           />
 
@@ -163,8 +152,12 @@ export default function App() {
         <main className="flex-1 flex flex-col">
           <CampusDashboardPreview
             session={session}
-            onChangeCampus={handleResetToLanding}
-            onLogout={handleResetToLanding}
+            onChangeCampus={handleChangeCampus}
+            onLogout={
+              session.role === 'jefa' || session.role === 'jefatura'
+                ? handleResetToLanding
+                : handleSalir
+            }
           />
           <FooterSection />
         </main>

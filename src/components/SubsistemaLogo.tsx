@@ -18,7 +18,7 @@ export const SubsistemaLogo: React.FC<SubsistemaLogoProps> = ({
   return (
     <div className={`flex flex-col items-center text-center ${className}`}>
       <img
-        src="/assets/logo-subsistema-bibliotecas.jpg"
+        src="/assets/logo-subsistema-bibliotecas.png"
         alt="Logo oficial Subsistema de Bibliotecas — Universidad Nacional, Sede Regional Chorotega"
         className={`${SIZE_CLASSES[size]} max-w-full h-auto drop-shadow-sm transition-transform duration-300 hover:scale-[1.01]`}
       />

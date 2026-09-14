@@ -1,0 +1,284 @@
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { api } from '../api/client';
+import type { CategoriaDto, ModuloDto, UserSession } from '../types';
+import { CategoriesView } from './CategoriesView';
+
+vi.mock('../api/client');
+
+const mockedApi = vi.mocked(api);
+
+const session: UserSession = {
+  accessToken: 'tok',
+  email: 'jefa@una.cr',
+  role: 'jefa',
+  campus: 'liberia',
+  campusId: 2,
+  name: 'Jefa Liberia',
+  userId: 'u-1',
+};
+
+const MODULOS: ModuloDto[] = [
+  { id: 1, nombre: 'Servicios' },
+];
+
+const CATEGORIAS: CategoriaDto[] = [
+  {
+    id: 11,
+    moduloId: 1,
+    nombre: 'Consultas en sala',
+    tipoMetrica: 'simple',
+    activo: true,
+    creadoPor: null,
+  },
+  {
+    id: 12,
+    moduloId: 1,
+    nombre: 'Préstamo de computadoras',
+    tipoMetrica: 'doble',
+    activo: true,
+    creadoPor: null,
+  },
+  {
+    id: 13,
+    moduloId: 1,
+    nombre: 'Búsqueda antigua',
+    tipoMetrica: 'simple',
+    activo: false,
+    creadoPor: null,
+  },
+];
+
+beforeEach(() => {
+  vi.clearAllMocks();
+  mockedApi.categorias.mockResolvedValue(CATEGORIAS);
+  mockedApi.modulos.mockResolvedValue(MODULOS);
+  mockedApi.crearCategoria.mockResolvedValue(CATEGORIAS[0] as CategoriaDto);
+  mockedApi.actualizarCategoria.mockResolvedValue(CATEGORIAS[0] as CategoriaDto);
+});
+
+describe('CategoriesView', () => {
+  it('muestra una tabla con las categorías activas y las archivadas por separado', async () => {
+    render(<CategoriesView session={session} />);
+
+    await screen.findByText('Consultas en sala');
+    expect(screen.getByText('Préstamo de computadoras')).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Módulo' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Categoría' })).toBeInTheDocument();
+
+    // La archivada no aparece por defecto en la vista Activas
+    expect(screen.queryByText('Búsqueda antigua')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Activas/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Archivadas/ })).toBeInTheDocument();
+  });
+
+  it('al cambiar a Archivadas solo muestra las desactivadas', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.click(screen.getByRole('button', { name: /Archivadas/ }));
+
+    expect(await screen.findByText('Búsqueda antigua')).toBeInTheDocument();
+    expect(screen.queryByText('Consultas en sala')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reactivar' })).toBeInTheDocument();
+  });
+
+  it('desactiva una categoría y la mueve a Archivadas', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Desactivar' })[0],
+    );
+    await waitFor(() =>
+      expect(mockedApi.actualizarCategoria).toHaveBeenCalledWith(11, { activo: false }),
+    );
+
+    expect(screen.queryByText('Consultas en sala')).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /Archivadas/ }));
+    expect(await screen.findByText('Consultas en sala')).toBeInTheDocument();
+  });
+
+  it('reactiva una categoría desde Archivadas', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.click(screen.getByRole('button', { name: /Archivadas/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Reactivar' }));
+
+    await waitFor(() =>
+      expect(mockedApi.actualizarCategoria).toHaveBeenCalledWith(13, { activo: true }),
+    );
+  });
+
+  it('muestra mensaje vacío cuando no hay categorías en la vista', async () => {
+    mockedApi.categorias.mockResolvedValue([]);
+    render(<CategoriesView session={session} />);
+
+    expect(await screen.findByText('No hay categorías activas.')).toBeInTheDocument();
+  });
+
+  it('pagina de 6 en 6 con Anterior y Siguiente', async () => {
+    const many: CategoriaDto[] = Array.from({ length: 8 }, (_, i) => ({
+      id: 100 + i,
+      moduloId: 1,
+      nombre: `Categoría ${i + 1}`,
+      tipoMetrica: 'simple' as const,
+      activo: true,
+      creadoPor: null,
+    }));
+    mockedApi.categorias.mockResolvedValue(many);
+    render(<CategoriesView session={session} />);
+
+    await screen.findByText('Categoría 1');
+    expect(screen.getByText('Categoría 6')).toBeInTheDocument();
+    expect(screen.queryByText('Categoría 7')).not.toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–6 de 8')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Página anterior' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+
+    expect(await screen.findByText('Categoría 7')).toBeInTheDocument();
+    expect(screen.queryByText('Categoría 1')).not.toBeInTheDocument();
+    expect(screen.getByText('Mostrando 7–8 de 8')).toBeInTheDocument();
+    expect(screen.getByText('Página 2 de 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Página anterior' }));
+
+    expect(await screen.findByText('Categoría 1')).toBeInTheDocument();
+    expect(screen.getByText('Página 1 de 2')).toBeInTheDocument();
+  });
+
+  it('vuelve a la primera página al cambiar de pestaña', async () => {
+    const many: CategoriaDto[] = Array.from({ length: 8 }, (_, i) => ({
+      id: 100 + i,
+      moduloId: 1,
+      nombre: `Categoría ${i + 1}`,
+      tipoMetrica: 'simple' as const,
+      activo: true,
+      creadoPor: null,
+    }));
+    mockedApi.categorias.mockResolvedValue(many);
+    render(<CategoriesView session={session} />);
+
+    await screen.findByText('Categoría 1');
+    await userEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    await screen.findByText('Categoría 7');
+
+    await userEvent.click(screen.getByRole('button', { name: /Archivadas/ }));
+    expect(await screen.findByText('No hay categorías archivadas.')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: /Activas/ }));
+    expect(await screen.findByText('Categoría 1')).toBeInTheDocument();
+    expect(screen.getByText('Página 1 de 2')).toBeInTheDocument();
+  });
+
+  it('filtra por nombre', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Filtrar por nombre' }),
+      'préstamo',
+    );
+
+    expect(await screen.findByText('Préstamo de computadoras')).toBeInTheDocument();
+    expect(screen.queryByText('Consultas en sala')).not.toBeInTheDocument();
+    expect(screen.getByText('Mostrando 1–1 de 1')).toBeInTheDocument();
+  });
+
+  it('filtra por módulo', async () => {
+    mockedApi.modulos.mockResolvedValue([
+      { id: 1, nombre: 'Servicios' },
+      { id: 2, nombre: 'Préstamos' },
+    ]);
+    mockedApi.categorias.mockResolvedValue([
+      {
+        id: 11,
+        moduloId: 1,
+        nombre: 'Consultas en sala',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+      },
+      {
+        id: 21,
+        moduloId: 2,
+        nombre: 'Préstamo a domicilio',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+      },
+    ]);
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.selectOptions(
+      screen.getByRole('combobox', { name: 'Filtrar por módulo' }),
+      '2',
+    );
+
+    expect(await screen.findByText('Préstamo a domicilio')).toBeInTheDocument();
+    expect(screen.queryByText('Consultas en sala')).not.toBeInTheDocument();
+  });
+
+  it('limpia los filtros aplicados', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Filtrar por nombre' }),
+      'préstamo',
+    );
+    expect(await screen.findByText('Préstamo de computadoras')).toBeInTheDocument();
+    expect(screen.queryByText('Consultas en sala')).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar' }));
+
+    expect(await screen.findByText('Consultas en sala')).toBeInTheDocument();
+    expect(screen.getByText('Préstamo de computadoras')).toBeInTheDocument();
+  });
+
+  it('muestra mensaje de sin resultados cuando el filtro no coincide', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.type(
+      screen.getByRole('textbox', { name: 'Filtrar por nombre' }),
+      'zzz-inexistente',
+    );
+
+    expect(
+      await screen.findByText('Sin resultados para el filtro aplicado.'),
+    ).toBeInTheDocument();
+  });
+
+  it('muestra un toast arriba al archivar una categoría', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.click(
+      screen.getAllByRole('button', { name: 'Desactivar' })[0],
+    );
+
+    const toast = await screen.findByRole('status');
+    expect(toast).toHaveTextContent('«Consultas en sala» se archivó.');
+  });
+
+  it('muestra un toast al reactivar y permite cerrarlo', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.click(screen.getByRole('button', { name: /Archivadas/ }));
+    await userEvent.click(await screen.findByRole('button', { name: 'Reactivar' }));
+
+    expect(
+      await screen.findByText('«Búsqueda antigua» se reactivó.'),
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Cerrar aviso' }));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+});

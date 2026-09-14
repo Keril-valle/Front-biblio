@@ -1,0 +1,162 @@
+- main [ref=e131]:
+  - generic [ref=e132]:
+    - complementary [ref=e134]:
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - img "Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA" [ref=e139]
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Nuria Zamora Chavarria
+            - paragraph [ref=e142]: Jefa de Biblioteca · Nicoya
+        - generic [ref=e143]:
+          - generic [ref=e144]: MENÚ PRINCIPAL
+          - button "Registro" [ref=e145]
+          - button "Estadísticas" [ref=e149]
+        - generic [ref=e153]:
+          - generic [ref=e154]: ADMINISTRACIÓN
+          - button "Usuarios" [ref=e155]
+          - button "Categorías" [ref=e159]
+          - button "Ciclos" [ref=e164]
+          - button "Reportes" [ref=e168]
+        - generic [ref=e172]:
+          - button "Cambiar de Campus" [ref=e173]
+          - button "Cerrar sesión" [ref=e177]
+      - paragraph [ref=e182]: Sistema de Estadísticas · Campus Regional Chorotega, UNA
+    - main [ref=e183]:
+      - generic [ref=e279]:
+        - generic [ref=e280]:
+          - heading "Reportes y Exportables Institucionales" [level=1] [ref=e281]
+          - paragraph [ref=e282]: Generá consolidados estadísticos oficiales para informes de gestión, acreditación o toma de decisiones.
+        - generic [ref=e283]:
+          - heading "1. Selección de Alcance de Campus" [level=2] [ref=e286]
+          - generic [ref=e287]:
+            - generic [ref=e288] [cursor=pointer]:
+              - generic [ref=e289]:
+                - generic [ref=e290]: Individual
+                - radio [ref=e291]
+              - heading "Campus Nicoya" [level=3] [ref=e292]
+              - paragraph [ref=e293]: Biblioteca Nayuribe
+            - generic [ref=e294] [cursor=pointer]:
+              - generic [ref=e295]:
+                - generic [ref=e296]: Individual
+                - radio [ref=e297]
+              - heading "Campus Liberia" [level=3] [ref=e298]
+              - paragraph [ref=e299]: Biblioteca Rose Marie Ruiz Bravo
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - generic [ref=e302]: Consolidado Institucional
+                - radio [checked] [ref=e303]
+              - heading "Ambos Campus (Consolidado)" [level=3] [ref=e304]
+              - paragraph [ref=e305]: Campus Regional Chorotega completo
+          - generic [ref=e306]:
+            - generic [ref=e307]:
+              - generic [ref=e308]: Período de Reporte
+              - combobox [ref=e309]:
+                - option "Por Ciclo Lectivo" [selected]
+                - option "Anual (I + II Ciclo del año)"
+            - generic [ref=e310]:
+              - generic [ref=e311]: Ciclo Lectivo / Período
+              - combobox [ref=e312]:
+                - option "I Ciclo Lectivo 2026 (2026-02-03 — 2026-06-20)" [selected]
+                - option "II Ciclo Lectivo 2026 (2026-07-14 — 2026-11-28)"
+            - generic [ref=e313]:
+              - generic [ref=e314]: Membrete Institucional UNA
+              - generic [ref=e315] [cursor=pointer]:
+                - checkbox "Incluir membrete oficial en el reporte" [checked] [ref=e316]
+                - generic [ref=e317]: Incluir membrete oficial en el reporte
+          - generic [ref=e318]:
+            - paragraph [ref=e319]:
+              - text: "Alcance seleccionado:"
+              - strong [ref=e320]: Campus Regional Chorotega (Nicoya + Liberia)
+            - generic [ref=e321]:
+              - button "Descargar PDF Oficial" [active] [ref=e322]
+              - button "Exportar Excel (.xlsx)" [ref=e325]
+          - generic [ref=e414]: No se pudo generar el reporte. Intentalo de nuevo.
+        - generic [ref=e328]:
+          - heading "Previsualización de Datos Consolidados" [level=3] [ref=e330]
+          - generic [ref=e331]:
+            - generic [ref=e332]:
+              - text: Atenciones Totales en Período
+              - paragraph [ref=e333]: "144"
+              - paragraph [ref=e334]: I Ciclo 2026
+            - generic [ref=e335]:
+              - text: Personas Atendidas
+              - paragraph [ref=e336]: "80"
+              - paragraph [ref=e337]: Capacitaciones y actividades con personas
+            - generic [ref=e338]:
+              - text: Categorías con Registros
+              - paragraph [ref=e339]: "9"
+              - paragraph [ref=e340]: Tipos de servicios atendidos
+          - table [ref=e342]:
+            - rowgroup [ref=e343]:
+              - row [ref=e344]:
+                - columnheader "Categoría" [ref=e345]
+                - columnheader "Módulo" [ref=e346]
+                - columnheader "Tipo de Métrica" [ref=e347]
+                - columnheader "Cantidad" [ref=e348]
+                - columnheader "Personas" [ref=e349]
+            - rowgroup [ref=e350]:
+              - row [ref=e351]:
+                - cell "Atenciones presenciales" [ref=e352]
+                - cell "Servicios" [ref=e353]
+                - cell "Cantidad" [ref=e354]
+                - cell "35" [ref=e355]
+                - cell "—" [ref=e356]
+              - row [ref=e357]:
+                - cell "curaduria" [ref=e358]
+                - cell "RAI" [ref=e359]
+                - cell "Cantidad" [ref=e360]
+                - cell "26" [ref=e361]
+                - cell "—" [ref=e362]
+              - row [ref=e363]:
+                - cell "Depositos" [ref=e364]
+                - cell "RAI" [ref=e365]
+                - cell "Cantidad" [ref=e366]
+                - cell "19" [ref=e367]
+                - cell "—" [ref=e368]
+              - row [ref=e369]:
+                - cell "Constancias TFG" [ref=e370]
+                - cell "RAI" [ref=e371]
+                - cell "Cantidad" [ref=e372]
+                - cell "15" [ref=e373]
+                - cell "—" [ref=e374]
+              - row [ref=e375]:
+                - cell "Capacitación en bases de datos" [ref=e376]
+                - cell "Asesoría, orientación, alfabetización y capacitación" [ref=e377]
+                - cell "Cantidad + Personas" [ref=e378]
+                - cell "13" [ref=e379]
+                - cell "80" [ref=e380]
+              - row [ref=e381]:
+                - cell "Computadoras campus" [ref=e382]
+                - cell "Préstamos" [ref=e383]
+                - cell "Cantidad" [ref=e384]
+                - cell "12" [ref=e385]
+                - cell "—" [ref=e386]
+              - row [ref=e387]:
+                - cell "Consultas en sala" [ref=e388]
+                - cell "Servicios" [ref=e389]
+                - cell "Cantidad" [ref=e390]
+                - cell "11" [ref=e391]
+                - cell "—" [ref=e392]
+              - row [ref=e393]:
+                - cell "Búsqueda Interbibliotecaria" [ref=e394]
+                - cell "Servicios" [ref=e395]
+                - cell "Cantidad" [ref=e396]
+                - cell "11" [ref=e397]
+                - cell "—" [ref=e398]
+              - row [ref=e399]:
+                - cell "Préstamo en sala" [ref=e400]
+                - cell "Préstamos" [ref=e401]
+                - cell "Cantidad" [ref=e402]
+                - cell "2" [ref=e403]
+                - cell "—" [ref=e404]
+            - rowgroup [ref=e405]:
+              - row [ref=e406]:
+                - cell "TOTAL" [ref=e407]
+                - cell "144" [ref=e408]
+                - cell "80" [ref=e409]
+  - generic [ref=e224]:
+    - paragraph [ref=e225]:
+      - text: Sistema desarrollado para el
+      - strong [ref=e226]: Subsistema de Bibliotecas
+      - text: ", Campus Regional Chorotega — Universidad Nacional de Costa Rica."
+    - generic [ref=e227]: UNA
