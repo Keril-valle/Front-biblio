@@ -1,0 +1,70 @@
+- main [ref=e131]:
+  - generic [ref=e132]:
+    - complementary [ref=e134]:
+      - generic [ref=e135]:
+        - generic [ref=e136]:
+          - img "Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA" [ref=e139]
+          - generic [ref=e140]:
+            - paragraph [ref=e141]: Nuria Zamora Chavarria
+            - paragraph [ref=e142]: Jefa de Biblioteca · Nicoya
+        - generic [ref=e143]:
+          - generic [ref=e144]: MENÚ PRINCIPAL
+          - button "Registro" [ref=e145]
+          - button "Estadísticas" [ref=e149]
+        - generic [ref=e153]:
+          - generic [ref=e154]: ADMINISTRACIÓN
+          - button "Usuarios" [ref=e155]
+          - button "Categorías" [ref=e159]
+          - button "Ciclos" [ref=e164]
+          - button "Reportes" [ref=e168]
+        - generic [ref=e172]:
+          - button "Cambiar de Campus" [ref=e173]
+          - button "Cerrar sesión" [ref=e177]
+      - paragraph [ref=e182]: Sistema de Estadísticas · Campus Regional Chorotega, UNA
+    - main [ref=e183]:
+      - generic [ref=e184]:
+        - generic [ref=e185]:
+          - generic [ref=e186]:
+            - generic [ref=e187]: Biblioteca Nayuribe
+            - generic [ref=e188]: Campus Nicoya
+          - heading "Registro Rápido de Atenciones" [level=1] [ref=e189]
+          - paragraph [ref=e190]: Formulario cotidiano para guardar atenciones en ventanilla y servicios brindados.
+        - generic [ref=e191]:
+          - generic [ref=e192]:
+            - generic [ref=e193]:
+              - heading "+ Nueva Atención en Ventanilla" [level=2] [ref=e194]
+              - generic [ref=e195]:
+                - text: "Bibliotecóloga:"
+                - strong [ref=e196]: Nuria Zamora Chavarria
+            - generic [ref=e197]:
+              - generic [ref=e198]:
+                - generic [ref=e199]: Ciclo Lectivo *
+                - combobox [ref=e200]
+              - generic [ref=e201]:
+                - generic [ref=e202]: 1. Módulo de Servicio *
+                - paragraph [ref=e203]: No hay módulos con categorías activas disponibles.
+              - generic [ref=e204]:
+                - generic [ref=e205]: 2. Categoría de Servicio *
+                - paragraph [ref=e206]: Seleccioná primero un módulo para ver sus categorías.
+              - generic [ref=e207]:
+                - generic [ref=e208]:
+                  - generic [ref=e209]: Cantidad *
+                  - spinbutton [ref=e210]: "1"
+                - generic [ref=e211]:
+                  - generic [ref=e212]: Observaciones (Opcional)
+                  - textbox "Ej. Búsqueda de tesis o préstamo interbibliotecario" [ref=e213]
+              - button "+ Guardar Registro de Atención" [ref=e214]
+          - generic [ref=e215]:
+            - generic [ref=e216]:
+              - heading "Registros Recientes" [level=3] [ref=e217]
+              - paragraph [ref=e218]: "Historial de las últimas atenciones registradas en Biblioteca Nayuribe:"
+              - paragraph [ref=e219]: Todavía no hay registros para mostrar.
+            - generic [ref=e221]:
+              - text: "Total atenciones listadas:"
+              - strong [ref=e222]: "0"
+  - generic [ref=e224]:
+    - paragraph [ref=e225]:
+      - text: Sistema desarrollado para el
+      - strong [ref=e226]: Subsistema de Bibliotecas
+      - text: ", Campus Regional Chorotega — Universidad Nacional de Costa Rica."
+    - generic [ref=e227]: UNA

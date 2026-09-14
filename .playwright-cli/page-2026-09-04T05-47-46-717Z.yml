@@ -1,0 +1,299 @@
+- generic [ref=e1]:
+  - main [ref=e131]:
+    - generic [ref=e132]:
+      - complementary [ref=e134]:
+        - generic [ref=e135]:
+          - generic [ref=e136]:
+            - img "Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA" [ref=e139]
+            - generic [ref=e140]:
+              - paragraph [ref=e141]: Nuria Zamora Chavarria
+              - paragraph [ref=e142]: Jefa de Biblioteca · Nicoya
+          - generic [ref=e143]:
+            - generic [ref=e144]: MENÚ PRINCIPAL
+            - button "Registro" [ref=e145]
+            - button "Estadísticas" [active] [ref=e149]
+          - generic [ref=e153]:
+            - generic [ref=e154]: ADMINISTRACIÓN
+            - button "Usuarios" [ref=e155]
+            - button "Categorías" [ref=e159]
+            - button "Ciclos" [ref=e164]
+            - button "Reportes" [ref=e168]
+          - generic [ref=e172]:
+            - button "Cambiar de Campus" [ref=e173]
+            - button "Cerrar sesión" [ref=e177]
+        - paragraph [ref=e182]: Sistema de Estadísticas · Campus Regional Chorotega, UNA
+      - main [ref=e183]:
+        - generic [ref=e277]:
+          - generic [ref=e278]:
+            - generic [ref=e279]:
+              - text: Estadísticas del Subsistema de Bibliotecas — UNA
+              - heading "Estadísticas Institucionales — Biblioteca Nayuribe (Nicoya)" [level=1] [ref=e280]
+              - paragraph [ref=e281]: Visualización de atenciones en ventanilla, flujo de préstamos y servicios brindados.
+            - generic [ref=e282]:
+              - text: "666"
+              - paragraph [ref=e283]: Atenciones registradas
+          - generic [ref=e284]:
+            - generic [ref=e285]:
+              - generic [ref=e286]:
+                - generic [ref=e287]: Ciclo Lectivo
+                - combobox [ref=e288]:
+                  - option "I Ciclo 2026" [selected]
+                  - option "II Ciclo 2026"
+              - generic [ref=e289]:
+                - generic [ref=e290]: Módulo
+                - combobox [ref=e291]:
+                  - option "Todos los módulos" [selected]
+                  - option "Servicios"
+                  - option "Préstamos"
+                  - option "Asesoría, orientación, alfabetización y capacitación"
+                  - option "Redes Sociales"
+                  - option "Desarrollo de Colecciones"
+                  - option "RAI"
+                  - option "Actividades Generales"
+                  - option "ISBN"
+              - generic [ref=e292]:
+                - generic [ref=e293]: Campus
+                - combobox [ref=e294]:
+                  - option "Todos los campus" [selected]
+                  - option "Nicoya"
+                  - option "Liberia"
+            - generic [ref=e295]:
+              - generic [ref=e296]:
+                - text: Atenciones del Ciclo
+                - paragraph [ref=e297]: "209"
+                - paragraph [ref=e298]: Suma de atenciones registradas
+              - generic [ref=e299]:
+                - text: Personas Atendidas
+                - paragraph [ref=e300]: "80"
+                - paragraph [ref=e301]: Capacitaciones y actividades con personas
+            - generic [ref=e302]:
+              - generic [ref=e303]:
+                - generic [ref=e304]:
+                  - text: Subsistema de Bibliotecas Chorotega
+                  - 'heading "Todos los módulos: I Ciclo y II Ciclo" [level=2] [ref=e305]'
+                  - paragraph [ref=e306]: Comparación exacta de magnitudes discretas para evaluar demanda por servicio.
+                - generic [ref=e307]:
+                  - button "I/II Ciclo" [ref=e308]
+                  - button "Campus" [ref=e309]
+                  - button "Anual" [ref=e310]
+              - generic [ref=e314]:
+                - list [ref=e316]:
+                  - listitem [ref=e317]:
+                    - img "I Ciclo legend icon" [ref=e318]
+                    - text: I Ciclo
+                  - listitem [ref=e320]:
+                    - img "II Ciclo legend icon" [ref=e321]
+                    - text: II Ciclo
+                - application [ref=e323]:
+                  - generic [ref=e328]:
+                    - generic [ref=e329]:
+                      - generic [ref=e330]: "0"
+                      - generic [ref=e332]: "75"
+                      - generic [ref=e334]: "150"
+                      - generic [ref=e336]: "225"
+                      - generic [ref=e338]: "300"
+                    - generic [ref=e340]:
+                      - generic "Atenciones presenciales" [ref=e343]
+                      - generic "curaduria" [ref=e346]
+                      - generic "Depositos" [ref=e349]
+                      - generic "Constancias TFG" [ref=e352]
+                      - generic "Capacitación en bases de datos" [ref=e355]: Capacitación en bases de …
+                      - generic "Computadoras campus" [ref=e358]
+                      - generic "Consultas en sala" [ref=e361]
+                      - generic "Búsqueda Interbibliotecaria" [ref=e364]: Búsqueda Interbibliotecar…
+                      - generic "Préstamo en sala" [ref=e367]
+                      - generic "audiovisuales" [ref=e370]
+                      - generic "solicitud de transferencia digital" [ref=e373]: solicitud de transferenci…
+                      - generic "Préstamo a domicilio" [ref=e376]
+                      - generic "Préstamo de materia documental o didáctico" [ref=e379]: Préstamo de materia docum…
+                      - generic "Préstamo de computadoras" [ref=e382]
+                      - generic "Préstamo de equipos / tablets" [ref=e385]: Préstamo de equipos / tab…
+                      - generic "Atenciones RAI en sala" [ref=e388]
+                      - generic "Uso de salas" [ref=e391]
+                      - generic "Uso de sala de estudio" [ref=e394]
+                      - generic "Apa" [ref=e397]
+            - generic [ref=e398]:
+              - generic [ref=e399]:
+                - generic [ref=e401]:
+                  - text: Proporción Relativa del Módulo (Dona)
+                  - heading "Composición de Atenciones por Categoría" [level=2] [ref=e402]
+                  - paragraph [ref=e403]: Visualización en dona para responder qué categoría predomina.
+                - generic [ref=e404]:
+                  - generic [ref=e405]:
+                    - application [ref=e408]
+                    - generic:
+                      - generic: "209"
+                      - generic: Total Atenciones
+                  - generic [ref=e409]:
+                    - generic [ref=e410]: Desglose por Categoría
+                    - generic [ref=e411]:
+                      - generic [ref=e412]:
+                        - generic [ref=e413]: Atenciones presenciales
+                        - generic [ref=e416]:
+                          - generic [ref=e417]: "96"
+                          - generic [ref=e418]: (45.9%)
+                      - generic [ref=e419]:
+                        - generic [ref=e420]: curaduria
+                        - generic [ref=e423]:
+                          - generic [ref=e424]: "26"
+                          - generic [ref=e425]: (12.4%)
+                      - generic [ref=e426]:
+                        - generic [ref=e427]: Depositos
+                        - generic [ref=e430]:
+                          - generic [ref=e431]: "19"
+                          - generic [ref=e432]: (9.1%)
+                      - generic [ref=e433]:
+                        - generic [ref=e434]: Constancias TFG
+                        - generic [ref=e437]:
+                          - generic [ref=e438]: "15"
+                          - generic [ref=e439]: (7.2%)
+                      - generic [ref=e440]:
+                        - generic [ref=e441]: Capacitación en bases de datos
+                        - generic [ref=e444]:
+                          - generic [ref=e445]: "13"
+                          - generic [ref=e446]: (6.2%)
+                      - generic [ref=e447]:
+                        - generic [ref=e448]: Computadoras campus
+                        - generic [ref=e451]:
+                          - generic [ref=e452]: "12"
+                          - generic [ref=e453]: (5.7%)
+                      - generic [ref=e454]:
+                        - generic [ref=e455]: Consultas en sala
+                        - generic [ref=e458]:
+                          - generic [ref=e459]: "11"
+                          - generic [ref=e460]: (5.3%)
+                      - generic [ref=e461]:
+                        - generic [ref=e462]: Búsqueda Interbibliotecaria
+                        - generic [ref=e465]:
+                          - generic [ref=e466]: "11"
+                          - generic [ref=e467]: (5.3%)
+                      - generic [ref=e468]:
+                        - generic [ref=e469]: solicitud de transferencia digital
+                        - generic [ref=e472]:
+                          - generic [ref=e473]: "2"
+                          - generic [ref=e474]: (1.0%)
+                      - generic [ref=e475]:
+                        - generic [ref=e476]: audiovisuales
+                        - generic [ref=e479]:
+                          - generic [ref=e480]: "2"
+                          - generic [ref=e481]: (1.0%)
+                      - generic [ref=e482]:
+                        - generic [ref=e483]: Préstamo en sala
+                        - generic [ref=e486]:
+                          - generic [ref=e487]: "2"
+                          - generic [ref=e488]: (1.0%)
+              - generic [ref=e489]:
+                - generic [ref=e490]:
+                  - generic [ref=e491]: Catálogo de Categorías
+                  - heading "Categorías registrables del sistema" [level=3] [ref=e494]
+                  - generic [ref=e495]:
+                    - generic [ref=e498]:
+                      - strong [ref=e499]: Atenciones presenciales
+                      - generic [ref=e500]: Servicios · Cantidad
+                    - generic [ref=e503]:
+                      - strong [ref=e504]: Préstamo interbibliotecario
+                      - generic [ref=e505]: Servicios · Cantidad
+                    - generic [ref=e508]:
+                      - strong [ref=e509]: Solicitud de paz y salvo
+                      - generic [ref=e510]: Servicios · Cantidad
+                    - generic [ref=e513]:
+                      - strong [ref=e514]: solicitud de transferencia digital
+                      - generic [ref=e515]: Servicios · Cantidad
+                    - generic [ref=e518]:
+                      - strong [ref=e519]: Computadoras campus
+                      - generic [ref=e520]: Préstamos · Cantidad
+                    - generic [ref=e523]:
+                      - strong [ref=e524]: Préstamo a domicilio
+                      - generic [ref=e525]: Préstamos · Cantidad
+                    - generic [ref=e528]:
+                      - strong [ref=e529]: Préstamo de equipos / tablets
+                      - generic [ref=e530]: Préstamos · Cantidad
+                    - generic [ref=e533]:
+                      - strong [ref=e534]: Préstamo de materia documental o didáctico
+                      - generic [ref=e535]: Préstamos · Cantidad
+                    - generic [ref=e538]:
+                      - strong [ref=e539]: Préstamo en sala
+                      - generic [ref=e540]: Préstamos · Cantidad
+                    - generic [ref=e543]:
+                      - strong [ref=e544]: audiovisuales
+                      - generic [ref=e545]: Préstamos · Cantidad
+                    - generic [ref=e548]:
+                      - strong [ref=e549]: Apa
+                      - generic [ref=e550]: Asesoría, orientación, alfabetización y capacitación · Cantidad
+                    - generic [ref=e553]:
+                      - strong [ref=e554]: Capacitación en bases de datos
+                      - generic [ref=e555]: Asesoría, orientación, alfabetización y capacitación · Cantidad + Personas
+                    - generic [ref=e558]:
+                      - strong [ref=e559]: Gestores de informacion
+                      - generic [ref=e560]: Asesoría, orientación, alfabetización y capacitación · Cantidad
+                    - generic [ref=e563]:
+                      - strong [ref=e564]: Inducción a nuevos estudiantes
+                      - generic [ref=e565]: Asesoría, orientación, alfabetización y capacitación · Cantidad + Personas
+                    - generic [ref=e568]:
+                      - strong [ref=e569]: Libros electrónicos
+                      - generic [ref=e570]: Asesoría, orientación, alfabetización y capacitación · Cantidad
+                    - generic [ref=e573]:
+                      - strong [ref=e574]: Interacciones en redes sociales
+                      - generic [ref=e575]: Redes Sociales · Cantidad
+                    - generic [ref=e578]:
+                      - strong [ref=e579]: Publicaciones elaboradas
+                      - generic [ref=e580]: Redes Sociales · Cantidad
+                    - generic [ref=e583]:
+                      - strong [ref=e584]: Publicaciones en redes sociales
+                      - generic [ref=e585]: Redes Sociales · Cantidad
+                    - generic [ref=e588]:
+                      - strong [ref=e589]: Publicaciones publicadas
+                      - generic [ref=e590]: Redes Sociales · Cantidad
+                    - generic [ref=e593]:
+                      - strong [ref=e594]: Disponible para el usuario
+                      - generic [ref=e595]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e598]:
+                      - strong [ref=e599]: Materiales procesados técnicamente
+                      - generic [ref=e600]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e603]:
+                      - strong [ref=e604]: Solicitudes de autor
+                      - generic [ref=e605]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e608]:
+                      - strong [ref=e609]: Solicitudes de descriptores
+                      - generic [ref=e610]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e613]:
+                      - strong [ref=e614]: Solicitudes enviadas
+                      - generic [ref=e615]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e618]:
+                      - strong [ref=e619]: Solicitudes tramitadas
+                      - generic [ref=e620]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e623]:
+                      - strong [ref=e624]: Títulos catalogados
+                      - generic [ref=e625]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e628]:
+                      - strong [ref=e629]: Títulos recibidos
+                      - generic [ref=e630]: Desarrollo de Colecciones · Cantidad
+                    - generic [ref=e633]:
+                      - strong [ref=e634]: Constancias TFG
+                      - generic [ref=e635]: RAI · Cantidad
+                    - generic [ref=e638]:
+                      - strong [ref=e639]: Depositos
+                      - generic [ref=e640]: RAI · Cantidad
+                    - generic [ref=e643]:
+                      - strong [ref=e644]: curaduria
+                      - generic [ref=e645]: RAI · Cantidad
+                    - generic [ref=e648]:
+                      - strong [ref=e649]: Actividades culturales
+                      - generic [ref=e650]: Actividades Generales · Cantidad
+                    - generic [ref=e653]:
+                      - strong [ref=e654]: Actividades de extensión
+                      - generic [ref=e655]: Actividades Generales · Cantidad + Personas
+                    - generic [ref=e658]:
+                      - strong [ref=e659]: Edición y producción de videos
+                      - generic [ref=e660]: Actividades Generales · Cantidad
+                    - generic [ref=e663]:
+                      - strong [ref=e664]: Exposiciones
+                      - generic [ref=e665]: Actividades Generales · Cantidad
+                - generic [ref=e666]: Librería nativa Recharts — Datos en tiempo real del subsistema.
+    - generic [ref=e270]:
+      - paragraph [ref=e271]:
+        - text: Sistema desarrollado para el
+        - strong [ref=e272]: Subsistema de Bibliotecas
+        - text: ", Campus Regional Chorotega — Universidad Nacional de Costa Rica."
+      - generic [ref=e273]: UNA
+  - generic [ref=e667]: "0"

@@ -1,0 +1,38 @@
+- main [ref=e78]:
+  - generic [ref=e79]:
+    - generic [ref=e80]:
+      - button "Regresar a Selección de Campus" [ref=e81]
+      - generic [ref=e84]:
+        - text: "Campus:"
+        - strong [ref=e85]: Nicoya
+    - generic [ref=e86]:
+      - generic [ref=e88]:
+        - img "Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA" [ref=e91]
+        - generic [ref=e92]: Sede Regional Chorotega — Campus Nicoya
+        - heading "Inicio de Sesión" [level=2] [ref=e93]
+        - paragraph [ref=e94]: Acceso al Sistema de Estadísticas del Subsistema de Bibliotecas — Biblioteca Nayuribe.
+      - generic [ref=e95]:
+        - generic [ref=e96]:
+          - generic [ref=e97]: Correo Institucional UNA *
+          - textbox "usuario.nicoya@una.cr" [ref=e99]
+          - paragraph [ref=e102]: Debe utilizar su cuenta @una.cr corporativa.
+        - generic [ref=e103]:
+          - generic [ref=e104]: Contraseña *
+          - textbox "••••••••" [ref=e106]
+        - button "Ingresar a Biblioteca Nayuribe" [ref=e109]
+        - generic [ref=e110]:
+          - generic [ref=e111]: Acceso Inmediato en 1-Clic
+          - generic [ref=e114]:
+            - button "Acceso Bibliotecóloga Entrar →" [ref=e115]:
+              - generic [ref=e116]: Acceso Bibliotecóloga
+              - generic [ref=e117]: Entrar →
+            - button "Acceso Jefa de Biblioteca Entrar →" [ref=e118]:
+              - generic [ref=e119]: Acceso Jefa de Biblioteca
+              - generic [ref=e120]: Entrar →
+      - paragraph [ref=e122]: Subsistema de Bibliotecas — Universidad Nacional de Costa Rica
+  - generic [ref=e124]:
+    - paragraph [ref=e125]:
+      - text: Sistema desarrollado para el
+      - strong [ref=e126]: Subsistema de Bibliotecas
+      - text: ", Campus Regional Chorotega — Universidad Nacional de Costa Rica."
+    - generic [ref=e127]: UNA

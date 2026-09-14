@@ -1,0 +1,45 @@
+- main [ref=e4]:
+  - generic [ref=e7]:
+    - generic [ref=e8]:
+      - generic [ref=e9]: UNA
+      - generic [ref=e10]:
+        - generic [ref=e11]: SIBUNA · Campus Regional Chorotega
+        - generic [ref=e12]: Sistema de Estadísticas de Bibliotecas
+    - button "Iniciar Sesión" [ref=e13]
+  - generic [ref=e19]:
+    - img "Logo oficial Subsistema de Bibliotecas — Universidad Nacional, Sede Regional Chorotega" [ref=e22]
+    - generic [ref=e23]: UNIVERSIDAD NACIONAL — SEDE REGIONAL CHOROTEGA
+    - heading "Sistema de estadísticas y atención al usuario" [level=1] [ref=e24]
+    - paragraph [ref=e25]: Centraliza el registro de atenciones cotidianas y genera reportes automáticos para las bibliotecas del Campus Regional Chorotega.
+    - generic [ref=e26]:
+      - button "Explorar Sistema — Campus Nicoya" [ref=e27]
+      - button "Explorar Sistema — Campus Liberia" [ref=e30]
+  - region [ref=e33]:
+    - generic [ref=e34]:
+      - heading "¿Desde qué biblioteca ingresás?" [level=2] [ref=e35]
+      - paragraph [ref=e36]: Hacé clic sobre tu biblioteca para acceder al sistema e iniciar sesión.
+    - generic [ref=e37]:
+      - button "Ingresar a Biblioteca Nayuribe, Sede Regional Chorotega — Campus Nicoya" [ref=e38] [cursor=pointer]:
+        - img "Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA" [ref=e42]
+        - generic [ref=e43]:
+          - generic [ref=e44]: Campus Nicoya
+          - heading "Biblioteca Nayuribe" [level=3] [ref=e45]
+          - generic [ref=e46]: Nicoya, Guanacaste
+        - generic [ref=e47]:
+          - button "Ver Sistema Completo (Acceso Directo)" [ref=e48]
+          - button "Iniciar Sesión Institucional" [ref=e52]
+      - button "Ingresar a Biblioteca Rose Marie Ruiz Bravo, Sede Regional Chorotega — Campus Liberia" [ref=e54] [cursor=pointer]:
+        - img "Logo oficial Biblioteca Rose Marie Ruiz Bravo — Sede Regional Chorotega, UNA" [ref=e58]
+        - generic [ref=e59]:
+          - generic [ref=e60]: Campus Liberia
+          - heading "Biblioteca Rose Marie Ruiz Bravo" [level=3] [ref=e61]
+          - generic [ref=e62]: Liberia, Guanacaste
+        - generic [ref=e63]:
+          - button "Ver Sistema Completo (Acceso Directo)" [ref=e64]
+          - button "Iniciar Sesión Institucional" [ref=e68]
+  - generic [ref=e71]:
+    - paragraph [ref=e72]:
+      - text: Sistema desarrollado para el
+      - strong [ref=e73]: Subsistema de Bibliotecas
+      - text: ", Campus Regional Chorotega — Universidad Nacional de Costa Rica."
+    - generic [ref=e74]: UNA

@@ -14,11 +14,11 @@ const SIZE_CLASSES: Record<NonNullable<LibraryLogoProps['size']>, string> = {
 
 const LOGO_SRC: Record<LibraryLogoProps['campusId'], { src: string; alt: string }> = {
   nicoya: {
-    src: '/assets/logo-nayuribe.jpg',
+    src: '/assets/logo-nayuribe.png',
     alt: 'Logo oficial Biblioteca Nayuribe — Sede Regional Chorotega, UNA',
   },
   liberia: {
-    src: '/assets/logo-rose-marie.jpg',
+    src: '/assets/logo-rose-marie.png',
     alt: 'Logo oficial Biblioteca Rose Marie Ruiz Bravo — Sede Regional Chorotega, UNA',
   },
 };

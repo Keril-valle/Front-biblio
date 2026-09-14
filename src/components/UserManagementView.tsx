@@ -237,11 +237,17 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
                     <td className="py-3.5 px-4 text-right">
                       <button
                         onClick={() => handleToggleStatus(usr)}
+                        disabled={usr.id === session.userId && usr.status === 'activo'}
+                        title={
+                          usr.id === session.userId && usr.status === 'activo'
+                            ? 'No puede desactivar su propia cuenta'
+                            : undefined
+                        }
                         className={`text-xs font-medium px-2.5 py-1 rounded border transition-colors ${
                           usr.status === 'activo'
                             ? 'border-gray-200 text-[#585757] hover:border-red-300 hover:text-red-700 bg-white'
                             : 'border-emerald-200 text-emerald-700 hover:bg-emerald-50 bg-white'
-                        }`}
+                        } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-gray-200 disabled:hover:text-[#585757]`}
                       >
                         {usr.status === 'activo' ? 'Desactivar' : 'Activar'}
                       </button>
