@@ -1,20 +1,37 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Front — Sistema de Estadísticas, Bibliotecas Sede Regional Chorotega (UNA)
 
-# Run and deploy your AI Studio app
+Frontend React 19 + Vite 6 + Tailwind CSS 4 + Recharts. Habla contra el backend NestJS (`/api`). Terminología visible: **"campus"** (Campus Nicoya, Campus Liberia, Ambos Campus), nunca "sede".
 
-This contains everything you need to run your app locally.
+## Vistas
 
-View your app in AI Studio: https://ai.studio/apps/6d55d4ba-1918-4c8e-9e35-337e65db1b05
+Landing (ambas bibliotecas + selector de campus) · Login (`/auth/login`, sesión en `localStorage`) · Registro rápido (categorías/ciclos reales, campo personas si `tipoMetrica=doble`, aviso del campus donde se guarda) · Dashboard (KPIs, modos I/II Ciclo, Campus —solo jefa con Ambos Campus—, Anual; línea de totales por modo) · Usuarios / Categorías / Ciclos / Reportes (solo jefa; PDF+Excel con membrete UNA opcional).
 
-## Run Locally
+## Desarrollo local
 
-**Prerequisites:**  Node.js
+```bash
+pnpm install
+pnpm run dev           # http://localhost:5173
+```
 
+En dev no hace falta `.env`: sin `VITE_API_URL` se usa `/api` relativo y el proxy de `vite.config.ts` lo lleva al back local. Para apuntar a otro backend, crear un `.env` con `VITE_API_URL=https://tu-backend` (el cliente agrega `/api` solo).
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+En dev, si `VITE_API_URL` no está definida se usa `/api` relativo y el proxy de `vite.config.ts` lo lleva al back local.
+
+## Variables de entorno
+
+| Variable | Uso |
+|---|---|
+| `VITE_API_URL` | URL base del backend **sin** `/api` final (ej. `https://back.midominio.cr`). Obligatoria en el build de producción/staging; en dev es opcional por el proxy. |
+
+## Scripts
+
+| Comando | Qué hace |
+|---|---|
+| `pnpm run dev` | Vite dev + proxy `/api` |
+| `pnpm run build` / `preview` | Build prod / previsualizar `dist/` |
+| `pnpm run lint` | `tsc --noEmit` (typecheck) |
+| `pnpm run test` / `test:coverage` | Vitest / con cobertura |
+
+## Despliegue
+
+Build estático (`dist/`). En Netlify definir `VITE_API_URL` con la URL pública del backend (Railway) antes de compilar; cada cambio de backend exige rebuild. El `FRONTEND_URL` del backend debe incluir el dominio del front (CORS).

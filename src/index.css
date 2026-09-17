@@ -2,11 +2,29 @@
 
 @layer base {
   :root {
-    --una-red: #CD1719;
-    --una-red-digital: #990000;
-    --una-blue: #034991;
-    --una-gray: #A7A7A9;
-    --una-gray-digital: #585757;
+    /* Paleta oficial UNA — Manual de Imagen Gráfica 2024.
+       Base: Rojo UNA (Pantone 185), Azul UNA (Pantone Reflex Blue),
+       Gris UNA (Cool Gray 6), Blanco y Negro. Los tintes y sombras
+       siguientes derivan exclusivamente de esos tonos (tramado 10–80%
+       y difuminado 100–0% permitidos por el manual). */
+    --una-red: #CD1719;          /* Rojo UNA */
+    --una-red-digital: #990000;  /* variante accesible web del rojo */
+    --una-red-40: #E17475;       /* rojo, tinte al 40% */
+    --una-red-30: #F0B9BA;       /* rojo, tinte al 30% */
+    --una-red-10: #FAE8E8;       /* rojo, tinte al 10% */
+    --una-red-70: #901012;       /* rojo, sombra al 70% */
+    --una-red-dark: #A41214;     /* rojo, sombra al 20% */
+
+    --una-blue: #034991;         /* Azul UNA */
+    --una-blue-80: #356DA7;      /* azul, tinte al 20% */
+    --una-blue-60: #6892BD;      /* azul, tinte al 40% */
+    --una-blue-40: #9AB6D3;      /* azul, tinte al 60% */
+    --una-blue-10: #E6EDF4;      /* azul, tinte al 10% */
+    --una-blue-dark: #023366;    /* azul, sombra al 30% */
+
+    --una-gray: #A7A7A9;         /* Gris UNA (Cool Gray 6) */
+    --una-gray-digital: #585757; /* variante accesible web del gris */
+
     --surface-white: #FFFFFF;
     --surface-gray-50: #F7F6F4;
     --border-gray: #E3E1DA;

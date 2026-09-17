@@ -111,8 +111,8 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
         {/* Login Form */}
         <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
           {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-lg flex items-center gap-2">
-              <svg className="w-4 h-4 text-red-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="p-3 bg-[#FAE8E8] border border-[#F0B9BA] text-[#901012] text-xs rounded-lg flex items-center gap-2">
+              <svg className="w-4 h-4 text-[#A41214] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
               <span>{errorMsg}</span>
@@ -164,7 +164,7 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-3 px-4 bg-[#990000] hover:bg-[#CD1719] active:bg-[#7D0000] text-white font-medium text-sm rounded-lg shadow-xs transition-colors duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#990000] focus:ring-offset-2 disabled:opacity-70 mt-2"
+            className="w-full py-3 px-4 bg-[#990000] hover:bg-[#CD1719] active:bg-[#A41214] text-white font-medium text-sm rounded-lg shadow-xs transition-colors duration-200 flex items-center justify-center gap-2 focus:outline-none focus:ring-2 focus:ring-[#990000] focus:ring-offset-2 disabled:opacity-70 mt-2"
           >
             {isLoading ? (
               <span className="inline-flex items-center gap-2">

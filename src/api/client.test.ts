@@ -55,6 +55,34 @@ describe('api client (contratos con el backend)', () => {
     expect(headers.Authorization).toBeUndefined();
   });
 
+  it('con VITE_API_URL definida usa el host como base y agrega el prefijo /api', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://back.up.railway.app');
+    vi.resetModules();
+    const { api: apiConEnv } = await import('./client');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await apiConEnv.ciclos();
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://back.up.railway.app/api/ciclos');
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
+  it('VITE_API_URL tolera slash final', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://back.up.railway.app/');
+    vi.resetModules();
+    const { api: apiConEnv } = await import('./client');
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await apiConEnv.ciclos();
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('https://back.up.railway.app/api/ciclos');
+    vi.unstubAllEnvs();
+    vi.resetModules();
+  });
+
   it('kpis arma cicloId y sedeId en el formato del backend', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ totalAtenciones: 1, totalPersonas: 0 }),

@@ -13,9 +13,13 @@ import {
   UsuarioDto,
 } from '../types';
 
-const BASE_URL =
-  (import.meta.env.VITE_API_URL as string | undefined)?.replace(/\/$/, '') ??
-  '/api';
+// VITE_API_URL apunta a la raíz del backend (ej. https://back.up.railway.app).
+// El cliente le agrega el prefijo global `/api`. En dev sin la variable, cae
+// a `/api` relativo (el proxy de vite.config.ts lo lleva a localhost:3000).
+const VITE_API_URL = import.meta.env.VITE_API_URL as string | undefined;
+const BASE_URL = VITE_API_URL
+  ? `${VITE_API_URL.trim().replace(/\/+$/, '')}/api`
+  : '/api';
 
 const TOKEN_KEY = 'biblioteca_token';
 const SESSION_KEY = 'biblioteca_session';
@@ -192,29 +196,39 @@ export const api = {
   },
 
   // ===== Dashboard =====
-  kpis: (cicloId?: number, sedeId?: number, moduloId?: number) => {
+  kpis: (cicloId?: number, sedeId?: number, moduloId?: number, signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     if (moduloId) params.set('moduloId', String(moduloId));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return request<KpisDto>(`/dashboard/kpis${qs}`);
+    return request<KpisDto>(`/dashboard/kpis${qs}`, { signal });
   },
-  porCategoria: (cicloId?: number, moduloId?: number, sedeId?: number) => {
+  porCategoria: (
+    cicloId?: number,
+    moduloId?: number,
+    sedeId?: number,
+    signal?: AbortSignal,
+  ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return request<PorCategoriaDto[]>(`/dashboard/por-categoria${qs}`);
+    return request<PorCategoriaDto[]>(`/dashboard/por-categoria${qs}`, { signal });
   },
-  composicion: (cicloId?: number, moduloId?: number, sedeId?: number) => {
+  composicion: (
+    cicloId?: number,
+    moduloId?: number,
+    sedeId?: number,
+    signal?: AbortSignal,
+  ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return request<ComposicionDto[]>(`/dashboard/composicion${qs}`);
+    return request<ComposicionDto[]>(`/dashboard/composicion${qs}`, { signal });
   },
   comparativoSedes: (cicloId?: number, moduloId?: number) => {
     const params = new URLSearchParams();
@@ -223,13 +237,13 @@ export const api = {
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<ComparativoSedesDto[]>(`/dashboard/comparativo-sedes${qs}`);
   },
-  porAnio: (moduloId?: number, sedeId?: number, anio?: number) => {
+  porAnio: (moduloId?: number, sedeId?: number, anio?: number, signal?: AbortSignal) => {
     const params = new URLSearchParams();
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     if (anio) params.set('anio', String(anio));
     const qs = params.toString() ? `?${params.toString()}` : '';
-    return request<PorAnioDto[]>(`/dashboard/por-anio${qs}`);
+    return request<PorAnioDto[]>(`/dashboard/por-anio${qs}`, { signal });
   },
 
   // ===== Reportes =====

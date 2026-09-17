@@ -26,7 +26,7 @@ const nombreCicloCorto = (c: CicloDto) =>
   `${c.numero === 1 ? 'I' : 'II'} Ciclo ${c.anio}`;
 
 export const ReportsView: React.FC<ReportsViewProps> = ({ session }) => {
-  const isJefa = session.role === 'jefa';
+  const isJefa = session.role === 'jefa' || session.role === 'jefatura';
   // Bibliotecóloga: su sede está forzada por el backend.
   const [selectedCampusScope, setSelectedCampusScope] = useState<
     'nicoya' | 'liberia' | 'ambas'
@@ -346,7 +346,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ session }) => {
             <button
               onClick={handleExportExcel}
               disabled={loading || rows.length === 0}
-              className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
+              className="px-4 py-2 bg-[#034991] hover:bg-[#356DA7] text-white text-xs font-semibold rounded-lg transition-colors flex items-center gap-2 disabled:opacity-40 disabled:cursor-not-allowed"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -357,8 +357,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ session }) => {
         </div>
 
         {exportSuccess && (
-          <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center gap-2">
-            <svg className="w-4 h-4 text-emerald-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="p-3 bg-[#E6EDF4] border border-[#9AB6D3] text-[#023366] text-xs rounded-lg flex items-center gap-2">
+            <svg className="w-4 h-4 text-[#034991] shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
             </svg>
             <span>{exportSuccess}</span>
