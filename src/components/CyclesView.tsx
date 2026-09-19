@@ -71,10 +71,10 @@ export const CyclesView: React.FC<CyclesViewProps> = () => {
       </div>
 
       {errorMsg && (
-        <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-lg">{errorMsg}</div>
+        <div className="p-3 bg-[#FAE8E8] border border-[#F0B9BA] text-[#901012] text-xs rounded-lg">{errorMsg}</div>
       )}
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg">{successMsg}</div>
+        <div className="p-3 bg-[#E6EDF4] border border-[#9AB6D3] text-[#023366] text-xs rounded-lg">{successMsg}</div>
       )}
 
       {loading ? (

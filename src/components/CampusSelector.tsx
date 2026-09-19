@@ -35,7 +35,7 @@ const ACCENT: Record<CampusId, CampusAccent> = {
     badge: 'text-[#034991]',
     nameHover: 'group-hover:text-[#034991]',
     borderHover: 'hover:border-[#034991]',
-    button: 'bg-[#034991] hover:bg-[#0a5cbd]',
+    button: 'bg-[#034991] hover:bg-[#356DA7]',
   },
 };
 

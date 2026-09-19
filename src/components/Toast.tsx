@@ -15,15 +15,15 @@ interface ToastProps {
 }
 
 const TONE_STYLES: Record<ToastTone, string> = {
-  success: 'border-emerald-200 bg-emerald-50 text-emerald-900',
+  success: 'border-[#9AB6D3] bg-[#E6EDF4] text-[#023366]',
   info: 'border-[#034991]/25 bg-[#034991]/5 text-[#262624]',
-  error: 'border-red-200 bg-red-50 text-red-900',
+  error: 'border-[#F0B9BA] bg-[#FAE8E8] text-[#901012]',
 };
 
 const TONE_ICON: Record<ToastTone, string> = {
-  success: 'text-emerald-600',
+  success: 'text-[#034991]',
   info: 'text-[#034991]',
-  error: 'text-red-600',
+  error: 'text-[#A41214]',
 };
 
 export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose }) => {

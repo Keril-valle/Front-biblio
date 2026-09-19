@@ -133,7 +133,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await screen.findByText('Atenciones del Ciclo');
 
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined);
+      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined, expect.any(AbortSignal));
     });
   });
 
@@ -146,7 +146,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await user.selectOptions(combos[0] as HTMLSelectElement, '11');
 
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined);
+      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined, expect.any(AbortSignal));
     });
   });
 
@@ -166,7 +166,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
       await screen.findByText('Campus Liberia — Biblioteca Rose Marie Ruiz Bravo'),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(expect.any(Number), 2, undefined);
+      expect(mockedApi.kpis).toHaveBeenCalledWith(expect.any(Number), 2, undefined, expect.any(AbortSignal));
     });
   });
 
@@ -183,6 +183,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
         expect.any(Number),
         undefined,
         1,
+        expect.any(AbortSignal),
       );
     });
   });
@@ -328,5 +329,125 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
 
     const matches = within(container).queryAllByText(/sede/i);
     expect(matches).toHaveLength(0);
+  });
+
+  it('bibliotecóloga: sin filtro ni modo campus; modos ciclos y anual intactos', async () => {
+    const user = userEvent.setup();
+    render(<DashboardCharts role="bibliotecologa" />);
+    await screen.findByText('Atenciones del Ciclo');
+
+    const combos = screen.getAllByRole('combobox');
+    expect(combos).toHaveLength(2); // ciclo + módulo, sin campus
+    expect(screen.queryByRole('button', { name: 'Campus' })).not.toBeInTheDocument();
+
+    const chart = await screen.findByTestId('recharts-BarChart');
+    await waitFor(() => {
+      const data = JSON.parse(chart.getAttribute('data-data') ?? '[]');
+      expect(data).toEqual([
+        { categoria: 'Consultas en sala', iCiclo: 30, iiCiclo: 12 },
+      ]);
+    });
+    expect(await screen.findByText(/I Ciclo: 30 · II Ciclo: 12/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Anual' }));
+    expect(
+      await screen.findByText('Todos los módulos: comparativa por año lectivo'),
+    ).toBeInTheDocument();
+  });
+
+  it('descarta respuestas obsoletas al cambiar de ciclo rápidamente', async () => {
+    const user = userEvent.setup();
+    let resolvePrimero: (v: { totalAtenciones: number; totalPersonas: number }) => void = () => {};
+    const primero = new Promise<{ totalAtenciones: number; totalPersonas: number }>(
+      (res) => {
+        resolvePrimero = res;
+      },
+    );
+    let resolveCompPrimera: (v: { nombre: string; valor: number }[]) => void = () => {};
+    const compPrimera = new Promise<{ nombre: string; valor: number }[]>((res) => {
+      resolveCompPrimera = res;
+    });
+
+    mockedApi.kpis.mockImplementation((cicloId?: number) => {
+      if (cicloId === 10) return primero;
+      return Promise.resolve({ totalAtenciones: 999, totalPersonas: 3 });
+    });
+    mockedApi.composicion.mockImplementation((cicloId?: number) => {
+      if (cicloId === 10) return compPrimera;
+      return Promise.resolve([{ nombre: 'Categoría nueva', valor: 5 }]);
+    });
+
+    render(<DashboardCharts role="jefa" />);
+    // Ciclo 10 (deferido) queda en vuelo mientras se filtra por ciclo.
+    expect(await screen.findByText('II Ciclo 2026')).toBeInTheDocument();
+    expect(screen.getByTestId('skeleton-kpis')).toBeInTheDocument();
+
+    const combos = screen.getAllByRole('combobox');
+    await user.selectOptions(combos[0] as HTMLSelectElement, '11');
+
+    // La respuesta del ciclo 11 (nueva) pinta el total.
+    expect(await screen.findByText('999')).toBeInTheDocument();
+
+    // La respuesta obsoleta del ciclo 10 no debe sobrescribir la vista.
+    resolvePrimero({ totalAtenciones: 1, totalPersonas: 1 });
+    resolveCompPrimera([{ nombre: 'Categoría nueva', valor: 1 }]);
+    await waitFor(() => {
+      expect(screen.queryByText('1')).not.toBeInTheDocument();
+    });
+    expect(screen.getByText('999')).toBeInTheDocument();
+  });
+
+  it('durante la carga muestra esqueletos en vez de totales parciales', async () => {
+    let resolveKpis: (v: { totalAtenciones: number; totalPersonas: number }) => void = () => {};
+    const kpisPendiente = new Promise<{ totalAtenciones: number; totalPersonas: number }>(
+      (res) => {
+        resolveKpis = res;
+      },
+    );
+    let resolveComp: (v: { nombre: string; valor: number }[]) => void = () => {};
+    const compPendiente = new Promise<{ nombre: string; valor: number }[]>((res) => {
+      resolveComp = res;
+    });
+    mockedApi.kpis.mockImplementation(() => kpisPendiente);
+    mockedApi.composicion.mockImplementation(() => compPendiente);
+
+    render(<DashboardCharts role="jefa" />);
+
+    expect(screen.getByTestId('skeleton-kpis')).toBeInTheDocument();
+    expect(screen.getByTestId('skeleton-composicion')).toBeInTheDocument();
+
+    resolveKpis({ totalAtenciones: 7, totalPersonas: 2 });
+    resolveComp([{ nombre: 'Servicios', valor: 7 }]);
+
+    expect((await screen.findAllByText('7')).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByTestId('skeleton-kpis')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('skeleton-composicion')).not.toBeInTheDocument();
+  });
+
+  it('sin datos muestra estado vacío y totales en cero', async () => {
+    mockedApi.kpis.mockResolvedValue({ totalAtenciones: 0, totalPersonas: 0 });
+    mockedApi.composicion.mockResolvedValue([]);
+    mockedApi.porCategoria.mockResolvedValue([]);
+
+    render(<DashboardCharts role="jefa" />);
+
+    expect(
+      await screen.findByText('No hay datos suficientes para mostrar el comparativo.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Sin datos para mostrar.')).toBeInTheDocument();
+    expect(screen.getAllByText('0').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('un error en los KPIs no bloquea el comparativo ni la composición', async () => {
+    mockedApi.kpis.mockRejectedValue(new Error('fallo de kpis'));
+
+    render(<DashboardCharts role="jefa" />);
+
+    expect(
+      (await screen.findAllByText(/No se pudieron cargar los datos\./)).length,
+    ).toBeGreaterThanOrEqual(1);
+    expect(await screen.findByTestId('recharts-BarChart')).toBeInTheDocument();
+    expect(await screen.findByText('Desglose por Categoría')).toBeInTheDocument();
+    expect((await screen.findAllByText('42')).length).toBeGreaterThanOrEqual(1);
   });
 });

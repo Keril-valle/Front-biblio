@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import {
   BarChart,
   Bar,
@@ -12,32 +12,20 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { api } from '../api/client';
-import {
-  CategoriaDto,
-  CicloDto,
-  ComposicionDto,
-  KpisDto,
-} from '../types';
+import type { CicloDto } from '../types';
+import { useEstadisticasDashboard } from './useEstadisticasDashboard';
 
-export interface BarChartDataItem {
-  categoria: string;
-  iCiclo?: number;
-  iiCiclo?: number;
-  nicoya?: number;
-  liberia?: number;
-  [anio: string]: number | string | undefined;
-}
-
+// Paleta categórica derivada solo de los colores oficiales UNA (rojo, azul
+// y gris del Manual de Imagen Gráfica) con sus tintes y sombras permitidos.
 const MODULE_COLORS = [
-  '#990000',
-  '#034991',
-  '#007A78',
-  '#D97706',
-  '#585757',
-  '#9CA3AF',
-  '#7C3AED',
-  '#DB2777',
+  '#CD1719', // Rojo UNA (Pantone 185)
+  '#034991', // Azul UNA (Pantone Reflex Blue)
+  '#7B0E0F', // Rojo UNA, sombra al 40%
+  '#356DA7', // Azul UNA, tinte al 20%
+  '#E17475', // Rojo UNA, tinte al 40%
+  '#023366', // Azul UNA, sombra al 30%
+  '#585757', // Gris UNA accesible
+  '#6892BD', // Azul UNA, tinte al 40%
 ];
 
 // Configuración del gráfico de barras horizontales: la altura crece una fila
@@ -55,6 +43,17 @@ interface CategoriaTickProps {
   y?: number;
   payload?: { value?: string };
 }
+
+/** Esqueleto de carga con la misma forma que la sección que reemplaza. */
+const SkeletonCaja: React.FC<{ testId?: string; className?: string }> = ({
+  testId,
+  className = '',
+}) => (
+  <div
+    data-testid={testId}
+    className={`animate-pulse bg-[#E9E7E1] rounded ${className}`}
+  />
+);
 
 /**
  * Tick del eje Y para nombres de categoría: trunca con ellipsis los nombres
@@ -83,210 +82,29 @@ interface DashboardChartsProps {
 
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const isJefatura = role === 'jefa' || role === 'jefatura';
-  const [comparisonMode, setComparisonMode] = useState<'ciclos' | 'anual' | 'campus'>('ciclos');
-  const [ciclos, setCiclos] = useState<CicloDto[]>([]);
-  const [cicloId, setCicloId] = useState<number | ''>('');
-  const [modulos, setModulos] = useState<{ id: number; nombre: string }[]>([]);
-  const [moduloId, setModuloId] = useState<number | ''>('');
-  // Filtro por sede (solo jefatura puede elegir; bibliotecóloga queda fija a su sede).
-  const [sedeId, setSedeId] = useState<number | ''>('');
-
-  const [kpis, setKpis] = useState<KpisDto>({ totalAtenciones: 0, totalPersonas: 0 });
-  const [barData, setBarData] = useState<BarChartDataItem[]>([]);
-  const [composition, setComposition] = useState<ComposicionDto[]>([]);
-  const [categorias, setCategorias] = useState<CategoriaDto[]>([]);
-  const [loading, setLoading] = useState(true);
-  // Totales por serie para mostrarlos junto al gráfico y que el usuario
-  // pueda verificar que las barras suman lo mismo que las tarjetas KPI.
-  const [totalesComparativo, setTotalesComparativo] = useState<Record<string, number>>({});
+  const {
+    ciclos,
+    modulos,
+    categorias,
+    anios,
+    cicloId,
+    moduloId,
+    sedeId,
+    comparisonMode,
+    setCicloId,
+    setModuloId,
+    setSedeId,
+    setComparisonMode,
+    kpis,
+    estadoKpis,
+    barData,
+    estadoComparativo,
+    totalesComparativo,
+    composition,
+    estadoComposicion,
+  } = useEstadisticasDashboard(role);
 
   const cycleName = (c: CicloDto) => `${c.numero === 1 ? 'I' : 'II'} Ciclo ${c.anio}`;
-
-  // Años lectivos disponibles (para el modo "anual").
-  const anios: number[] = Array.from(new Set<number>(ciclos.map((c) => c.anio))).sort(
-    (a: number, b: number) => a - b,
-  );
-
-  useEffect(() => {
-    Promise.all([api.ciclos(), api.modulos(), api.categorias()])
-      .then(([cic, mods, cats]) => {
-        setCiclos(cic);
-        setModulos(mods.map((m) => ({ id: m.id, nombre: m.nombre })));
-        setCategorias(cats);
-        const primerCiclo = cic[0];
-        if (primerCiclo) setCicloId(primerCiclo.id);
-        // Por defecto se muestra el ciclo vigente (no el primero de la
-        // lista), para que los KPIs coincidan con el banner del dashboard.
-        api
-          .cicloActual()
-          .then((actual) => {
-            if (cic.some((c) => c.id === actual.id)) setCicloId(actual.id);
-          })
-          .catch(() => {
-            /* sin ciclo vigente: se conserva el primero */
-          });
-      })
-      .catch(() => setLoading(false));
-  }, []);
-
-  // Cargar KPIs + composición cuando cambia el ciclo/módulo/sede.
-  useEffect(() => {
-    if (cicloId === '') return;
-    setLoading(true);
-
-    const cid = cicloId === '' ? undefined : Number(cicloId);
-    const mid = moduloId === '' ? undefined : Number(moduloId);
-    const sid = sedeId === '' ? undefined : Number(sedeId);
-
-    api
-      .kpis(cid, sid, mid)
-      .then(setKpis)
-      .catch(() => undefined);
-
-    api
-      .composicion(cid, mid, sid)
-      .then(setComposition)
-      .catch(() => setComposition([]))
-      .finally(() => setLoading(false));
-  }, [cicloId, moduloId, sedeId]);
-
-  // Comparativo por categoría según el modo (ciclos vs anual vs campus).
-  // Todas las ramas respetan los filtros de módulo y campus, y publican los
-  // totales por serie en `totalesComparativo` para mostrarlos en pantalla.
-  useEffect(() => {
-    if (cicloId === '' || ciclos.length === 0) return;
-
-    const cid = cicloId === '' ? undefined : Number(cicloId);
-    const mid = moduloId === '' ? undefined : Number(moduloId);
-    const sid = sedeId === '' ? undefined : Number(sedeId);
-    let cancelado = false;
-
-    if (comparisonMode === 'ciclos') {
-      // Agrupa por número de ciclo (I / II) sumando todos los años: así el
-      // comparativo sigue siendo correcto aunque haya varios años lectivos.
-      Promise.all(
-        ciclos.map(async (c) => ({
-          ciclo: c,
-          rows: await api.porCategoria(c.id, mid, sid),
-        })),
-      )
-        .then((results) => {
-          if (cancelado) return;
-          const map = new Map<string, BarChartDataItem>();
-          const totales = { iCiclo: 0, iiCiclo: 0 };
-          results.forEach(({ ciclo, rows }) => {
-            const clave = ciclo.numero === 1 ? 'iCiclo' : 'iiCiclo';
-            rows.forEach((row) => {
-              const entry = map.get(row.categoriaNombre) ?? {
-                categoria: row.categoriaNombre,
-                iCiclo: 0,
-                iiCiclo: 0,
-              };
-              entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
-              map.set(row.categoriaNombre, entry);
-              totales[clave] += row.total;
-            });
-          });
-          // Orden descendente por total combinado para lectura rápida.
-          const ordenado = Array.from(map.values()).sort(
-            (a, b) =>
-              ((b.iCiclo as number) ?? 0) +
-              ((b.iiCiclo as number) ?? 0) -
-              (((a.iCiclo as number) ?? 0) + ((a.iiCiclo as number) ?? 0)),
-          );
-          setBarData(ordenado);
-          setTotalesComparativo(totales);
-        })
-        .catch(() => {
-          if (!cancelado) {
-            setBarData([]);
-            setTotalesComparativo({});
-          }
-        });
-    } else if (comparisonMode === 'campus') {
-      // Comparación por campus (solo disponible con "Ambos campus"):
-      // desglose por categoría Nicoya vs Liberia para el ciclo (y módulo)
-      // seleccionado, ordenado por total combinado descendente.
-      const consultarCampus = async (idSede?: number) =>
-        api.porCategoria(cid, mid, idSede);
-      Promise.all([consultarCampus(1), consultarCampus(2)])
-        .then(([rowsNicoya, rowsLiberia]) => {
-          if (cancelado) return;
-          const map = new Map<string, BarChartDataItem>();
-          const totales = { nicoya: 0, liberia: 0 };
-          rowsNicoya.forEach((row) => {
-            const entry = map.get(row.categoriaNombre) ?? {
-              categoria: row.categoriaNombre,
-              nicoya: 0,
-              liberia: 0,
-            };
-            entry.nicoya = ((entry.nicoya as number) ?? 0) + row.total;
-            map.set(row.categoriaNombre, entry);
-            totales.nicoya += row.total;
-          });
-          rowsLiberia.forEach((row) => {
-            const entry = map.get(row.categoriaNombre) ?? {
-              categoria: row.categoriaNombre,
-              nicoya: 0,
-              liberia: 0,
-            };
-            entry.liberia = ((entry.liberia as number) ?? 0) + row.total;
-            map.set(row.categoriaNombre, entry);
-            totales.liberia += row.total;
-          });
-          const datos = Array.from(map.values()).sort(
-            (a, b) =>
-              ((b.nicoya as number) ?? 0) +
-              ((b.liberia as number) ?? 0) -
-              (((a.nicoya as number) ?? 0) + ((a.liberia as number) ?? 0)),
-          );
-          setBarData(datos);
-          setTotalesComparativo(totales);
-        })
-        .catch(() => {
-          if (!cancelado) {
-            setBarData([]);
-            setTotalesComparativo({});
-          }
-        });
-    } else if (comparisonMode === 'anual') {
-      api
-        .porAnio(mid, sid)
-        .then((rows) => {
-          if (cancelado) return;
-          const map = new Map<string, Record<string, number | undefined>>();
-          const totales: Record<string, number> = {};
-          rows.forEach((row) => {
-            const entry = map.get(row.categoriaNombre) ?? {};
-            entry[String(row.anio)] = ((entry[String(row.anio)] as number) ?? 0) + row.total;
-            map.set(row.categoriaNombre, entry);
-            totales[String(row.anio)] = (totales[String(row.anio)] ?? 0) + row.total;
-          });
-          const ordenado = Array.from(map.entries())
-            .map(([cat, anioData]) => ({
-              categoria: cat,
-              ...anioData,
-            }))
-            .sort((a, b) => {
-              const totalA = anios.reduce((acc, an) => acc + ((a[String(an)] as number) ?? 0), 0);
-              const totalB = anios.reduce((acc, an) => acc + ((b[String(an)] as number) ?? 0), 0);
-              return totalB - totalA;
-            });
-          setBarData(ordenado);
-          setTotalesComparativo(totales);
-        })
-        .catch(() => {
-          if (!cancelado) {
-            setBarData([]);
-            setTotalesComparativo({});
-          }
-        });
-    }
-    return () => {
-      cancelado = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comparisonMode, cicloId, moduloId, sedeId, ciclos]);
 
   const totalCompositionCount = composition.reduce((acc, curr) => acc + curr.valor, 0);
   // En modo anual el panel "Total del Módulo" muestra el acumulado de todos
@@ -393,10 +211,10 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             <select
               value={sedeId}
               onChange={(e) => {
-                const next = e.target.value === "" ? "" : Number(e.target.value);
+                const next = e.target.value === '' ? '' : Number(e.target.value);
                 setSedeId(next);
                 // La comparación por campus solo tiene sentido con ambos campus.
-                if (next !== "" && comparisonMode === 'campus') setComparisonMode('ciclos');
+                if (next !== '' && comparisonMode === 'campus') setComparisonMode('ciclos');
               }}
               className="px-3 py-2 rounded-lg border border-[#E3E1DA] text-sm bg-white outline-none focus:border-[#990000]"
             >
@@ -406,7 +224,6 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             </select>
           </div>
         )}
-        {loading && <span className="text-xs text-[#6B6A64] pb-2">Cargando datos...</span>}
       </section>
 
       {/* 1. KPI Cards Panel */}
@@ -415,9 +232,17 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Atenciones del Ciclo
           </span>
-          <p className="text-3xl font-bold text-[#262624] font-mono mt-2">
-            {kpis.totalAtenciones.toLocaleString()}
-          </p>
+          {estadoKpis === 'cargando' ? (
+            <SkeletonCaja testId="skeleton-kpis" className="h-9 w-28 mt-2" />
+          ) : estadoKpis === 'error' ? (
+            <p className="text-sm font-semibold text-[#990000] mt-2">
+              No se pudieron cargar los datos.
+            </p>
+          ) : (
+            <p className="text-3xl font-bold text-[#262624] font-mono mt-2">
+              {kpis.totalAtenciones.toLocaleString()}
+            </p>
+          )}
           <p className="text-[11px] text-[#6B6A64] mt-1">
             {cicloSeleccionado ? `${cycleName(cicloSeleccionado)} · ` : ''}
             {nombreModuloSeleccionado} · {nombreCampusSeleccionado}
@@ -428,10 +253,20 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Personas Atendidas
           </span>
-          <p className="text-3xl font-bold text-[#990000] font-mono mt-2">
-            {kpis.totalPersonas.toLocaleString()}
+          {estadoKpis === 'cargando' ? (
+            <SkeletonCaja className="h-9 w-28 mt-2" />
+          ) : estadoKpis === 'error' ? (
+            <p className="text-sm font-semibold text-[#990000] mt-2">
+              No se pudieron cargar los datos.
+            </p>
+          ) : (
+            <p className="text-3xl font-bold text-[#990000] font-mono mt-2">
+              {kpis.totalPersonas.toLocaleString()}
+            </p>
+          )}
+          <p className="text-[11px] text-[#6B6A64] mt-1">
+            Capacitaciones y actividades con personas
           </p>
-          <p className="text-[11px] text-[#6B6A64] mt-1">Capacitaciones y actividades con personas</p>
         </div>
       </section>
 
@@ -535,7 +370,15 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         </div>
 
         <div className="w-full pt-2 overflow-y-auto" style={{ maxHeight: BAR_CHART_MAX_HEIGHT }}>
-          {barData.length === 0 ? (
+          {estadoComparativo === 'cargando' ? (
+            <SkeletonCaja testId="skeleton-comparativo" className="h-72 w-full" />
+          ) : estadoComparativo === 'error' ? (
+            <div className="h-72 flex items-center justify-center">
+              <p className="text-xs font-semibold text-[#990000]">
+                No se pudieron cargar los datos del comparativo.
+              </p>
+            </div>
+          ) : barData.length === 0 ? (
             <div className="h-72 flex items-center justify-center text-xs text-[#6B6A64]">
               No hay datos suficientes para mostrar el comparativo.
             </div>
@@ -666,7 +509,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
             <div className="h-64 relative flex items-center justify-center">
-              {composition.length === 0 ? (
+              {estadoComposicion === 'cargando' ? (
+                <SkeletonCaja testId="skeleton-composicion" className="h-52 w-52 rounded-full" />
+              ) : estadoComposicion === 'error' ? (
+                <p className="text-xs font-semibold text-[#990000]">
+                  No se pudieron cargar los datos del módulo.
+                </p>
+              ) : composition.length === 0 ? (
                 <div className="text-xs text-[#6B6A64]">Sin datos para mostrar.</div>
               ) : (
                 <ResponsiveContainer width="100%" height="100%">
@@ -704,21 +553,33 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                 </ResponsiveContainer>
               )}
 
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
-                <span className="text-2xl font-bold font-mono text-[#262624]">
-                  {totalCompositionCount.toLocaleString()}
-                </span>
-                <span className="text-[10px] font-semibold text-[#6B6A64] uppercase tracking-wider">
-                  Total Atenciones
-                </span>
-              </div>
+              {estadoComposicion !== 'cargando' && estadoComposicion !== 'error' && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center">
+                  <span className="text-2xl font-bold font-mono text-[#262624]">
+                    {totalCompositionCount.toLocaleString()}
+                  </span>
+                  <span className="text-[10px] font-semibold text-[#6B6A64] uppercase tracking-wider">
+                    Total Atenciones
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-2">
               <span className="text-xs font-bold text-[#585757] uppercase tracking-wider block mb-2">
                 Desglose por Categoría
               </span>
-              {composition.length === 0 ? (
+              {estadoComposicion === 'cargando' ? (
+                <div className="space-y-2" data-testid="skeleton-desglose">
+                  <SkeletonCaja className="h-8 w-full" />
+                  <SkeletonCaja className="h-8 w-full" />
+                  <SkeletonCaja className="h-8 w-3/4" />
+                </div>
+              ) : estadoComposicion === 'error' ? (
+                <p className="text-xs text-[#990000]">
+                  No se pudieron cargar los datos del módulo.
+                </p>
+              ) : composition.length === 0 ? (
                 <p className="text-xs text-[#6B6A64]">Sin datos.</p>
               ) : (
                 <div className="space-y-2 max-h-64 overflow-y-auto pr-1">

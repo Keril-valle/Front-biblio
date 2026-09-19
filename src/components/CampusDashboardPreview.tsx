@@ -63,17 +63,23 @@ export const CampusDashboardPreview: React.FC<CampusDashboardPreviewProps> = ({
         </div>
       )}
 
-      {/* Tab: Usuarios (Administration) */}
-      {activeTab === 'usuarios' && <UserManagementView session={session} />}
+      {/* Tab: Usuarios (Administration) — solo jefatura */}
+      {activeTab === 'usuarios' && isJefatura && (
+        <UserManagementView session={session} />
+      )}
 
-      {/* Tab: Categorías (Administration) */}
-      {activeTab === 'categorias' && <CategoriesView session={session} />}
+      {/* Tab: Categorías (Administration) — solo jefatura */}
+      {activeTab === 'categorias' && isJefatura && (
+        <CategoriesView session={session} />
+      )}
 
-      {/* Tab: Ciclos (Administration) */}
-      {activeTab === 'ciclos' && <CyclesView session={session} />}
+      {/* Tab: Ciclos (Administration) — solo jefatura */}
+      {activeTab === 'ciclos' && isJefatura && <CyclesView session={session} />}
 
-      {/* Tab: Reportes (Administration) */}
-      {activeTab === 'reportes' && <ReportsView session={session} />}
+      {/* Tab: Reportes (Administration) — solo jefatura */}
+      {activeTab === 'reportes' && isJefatura && (
+        <ReportsView session={session} />
+      )}
     </SidebarNav>
   );
 };

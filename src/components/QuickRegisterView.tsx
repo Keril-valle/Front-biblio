@@ -215,14 +215,14 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
           </p>
 
           {successMsg && (
-            <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-lg flex items-center justify-between">
+            <div className="p-3 bg-[#E6EDF4] border border-[#9AB6D3] text-[#023366] text-xs rounded-lg flex items-center justify-between">
               <span>{successMsg}</span>
-              <span className="text-[10px] uppercase font-bold text-emerald-600">Guardado</span>
+              <span className="text-[10px] uppercase font-bold text-[#034991]">Guardado</span>
             </div>
           )}
 
           {errorMsg && (
-            <div className="p-3 bg-red-50 border border-red-200 text-red-800 text-xs rounded-lg">
+            <div className="p-3 bg-[#FAE8E8] border border-[#F0B9BA] text-[#901012] text-xs rounded-lg">
               {errorMsg}
             </div>
           )}
