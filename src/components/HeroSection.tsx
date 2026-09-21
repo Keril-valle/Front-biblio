@@ -23,7 +23,7 @@ export const HeroSection: React.FC = () => {
         <div className="animate-rise" style={{ animationDelay: '0ms' }}>
           <p className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#034991]">
             <span aria-hidden className="h-2 w-2 rounded-[2px] bg-[#CD1719]" />
-            Universidad Nacional · Campus Regional Chorotega
+            Universidad Nacional · Sede Regional Chorotega
           </p>
 
           <h1 className="mt-5 font-goudy text-4xl font-semibold leading-[1.04] tracking-tight text-[#262624] sm:text-5xl lg:text-[3.4rem]">
