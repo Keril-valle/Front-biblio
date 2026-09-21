@@ -1,5 +1,6 @@
 import React from 'react';
 import { scrollToSelector } from '../utils/scrollToSelector';
+import { UnaLogo } from './UnaLogo';
 
 export const HomeHeaderNav: React.FC = () => {
   return (
@@ -11,10 +12,7 @@ export const HomeHeaderNav: React.FC = () => {
 
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3 sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
-          <div className="relative flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-[#CD1719] font-goudy text-base font-bold text-white shadow-sm">
-            <span className="relative z-10">UNA</span>
-            <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-[#034991]" />
-          </div>
+          <UnaLogo size="md" />
           <div className="flex min-w-0 flex-col leading-tight">
             <span className="truncate text-[11px] font-bold uppercase tracking-[0.16em] text-[#990000] sm:text-xs">
               Subsistema de Bibliotecas

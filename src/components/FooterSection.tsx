@@ -1,5 +1,6 @@
 import React from 'react';
 import { CAMPUSES } from '../data/campuses';
+import { UnaLogo } from './UnaLogo';
 
 export const FooterSection: React.FC = () => {
   const year = new Date().getFullYear();
@@ -16,13 +17,10 @@ export const FooterSection: React.FC = () => {
         {/* Subsistema */}
         <div>
           <div className="flex items-center gap-3">
-            <div className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-lg bg-[#990000] font-goudy text-sm font-bold text-white">
-              <span className="relative z-10">UNA</span>
-              <span aria-hidden className="absolute inset-x-0 bottom-0 h-1 bg-[#034991]" />
-            </div>
+            <UnaLogo size="md" />
             <div className="leading-tight">
               <p className="text-sm font-bold text-[#262624]">Subsistema de Bibliotecas</p>
-              <p className="text-[11px] text-[#6B6A64]">SIBUNA · Campus Regional Chorotega</p>
+              <p className="text-[11px] text-[#6B6A64]">SIDUNA · Campus Regional Chorotega</p>
             </div>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-[#6B6A64]">
@@ -76,8 +74,8 @@ export const FooterSection: React.FC = () => {
 
       <div className="border-t border-black/10 bg-[#262624] px-4 py-3 text-center">
         <p className="text-[11px] text-[#F7F6F4]">
-          © {year} Universidad Nacional · Subsistema de Bibliotecas — Campus
-          Regional Chorotega. Todos los derechos reservados.
+          © {year} Universidad Nacional · Subsistema de Bibliotecas — Sede
+          Región Chorotega. Todos los derechos reservados.
         </p>
       </div>
     </footer>

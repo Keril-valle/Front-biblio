@@ -39,8 +39,8 @@ export const HeroSection: React.FC = () => {
           </h1>
 
           <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-[#6B6A64]">
-            Centraliza el registro de atenciones cotidianas de las bibliotecas de
-            la región Chorotega y genera reportes automáticos por ciclo, sin
+            Centraliza el registro de atenciones cotidianas de las Bibliotecas de
+            la Región Chorotega y genera reportes automáticos por ciclo, sin
             hojas de cálculo.
           </p>
 

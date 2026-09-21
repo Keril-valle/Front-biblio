@@ -32,6 +32,11 @@ describe('HomeHeaderNav', () => {
     expect(screen.getByText('Campus Regional Chorotega · Universidad Nacional')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Iniciar sesión/i })).toBeInTheDocument();
     expect(screen.queryByText('Sistema de Estadísticas de Bibliotecas')).not.toBeInTheDocument();
+    // Logo oficial de la UNA en el navbar.
+    expect(screen.getByAltText(/Universidad Nacional de Costa Rica/i)).toHaveAttribute(
+      'src',
+      '/assets/Logo-UNA-Rojo_FondoTransparente.png',
+    );
   });
 
   it('desplaza suavemente hasta el selector de biblioteca', async () => {
@@ -63,6 +68,13 @@ describe('HeroSection', () => {
   it('conserva el logo del subsistema', () => {
     render(<HeroSection />);
     expect(screen.getByAltText(/Subsistema de Bibliotecas/i)).toBeInTheDocument();
+  });
+
+  it('capitaliza Bibliotecas de la Región Chorotega', () => {
+    render(<HeroSection />);
+    expect(
+      screen.getByText(/Bibliotecas de\s+la Región Chorotega/),
+    ).toBeInTheDocument();
   });
 });
 
@@ -97,6 +109,11 @@ describe('CampusSelector', () => {
     await userEvent.click(buttons[1]);
     expect(onSelectCampus).toHaveBeenCalledWith('liberia');
   });
+
+  it('rotula el acceso como sistema estadístico', () => {
+    render(<CampusSelector onSelectCampus={() => {}} />);
+    expect(screen.getByText('Acceso al sistema estadístico')).toBeInTheDocument();
+  });
 });
 
 describe('FooterSection', () => {
@@ -110,5 +127,22 @@ describe('FooterSection', () => {
   it('usa el término campus en el texto visible', () => {
     render(<FooterSection />);
     expect(screen.getAllByText(/Campus Regional Chorotega/i).length).toBeGreaterThan(0);
+  });
+
+  it('usa SIDUNA, el logo UNA y menciona la Sede Región Chorotega', () => {
+    render(<FooterSection />);
+    expect(screen.getByText(/SIDUNA/)).toBeInTheDocument();
+    expect(screen.queryByText(/SIBUNA/)).not.toBeInTheDocument();
+    expect(screen.getByText(/Sede\s+Región Chorotega/)).toBeInTheDocument();
+    expect(screen.getByAltText(/Universidad Nacional de Costa Rica/i)).toHaveAttribute(
+      'src',
+      '/assets/Logo-UNA-Rojo_FondoTransparente.png',
+    );
+  });
+
+  it('muestra los correos de contacto de cada campus', () => {
+    render(<FooterSection />);
+    expect(screen.getByText('binicoya@una.cr')).toBeInTheDocument();
+    expect(screen.getByText('biliberia@una.cr')).toBeInTheDocument();
   });
 });

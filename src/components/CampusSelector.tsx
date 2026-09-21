@@ -61,7 +61,7 @@ export const CampusSelector: React.FC<CampusSelectorProps> = ({
       <div className="mb-10 text-center">
         <p className="inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-[#034991]">
           <span aria-hidden className="h-2 w-2 rounded-[2px] bg-[#CD1719]" />
-          Acceso al sistema
+          Acceso al sistema estadístico
         </p>
         <h2
           id="selector-heading"

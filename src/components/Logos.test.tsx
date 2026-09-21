@@ -2,6 +2,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { LibraryLogo } from './LibraryLogos';
 import { SubsistemaLogo } from './SubsistemaLogo';
+import { UnaLogo } from './UnaLogo';
 
 describe('LibraryLogo', () => {
   it('usa el PNG transparente del Campus Nicoya', () => {
@@ -24,6 +25,17 @@ describe('SubsistemaLogo', () => {
     expect(img).toHaveAttribute(
       'src',
       '/assets/logo-subsistema-bibliotecas.png',
+    );
+  });
+});
+
+describe('UnaLogo', () => {
+  it('usa el PNG rojo transparente de la UNA', () => {
+    render(<UnaLogo />);
+    const img = screen.getByAltText(/Universidad Nacional de Costa Rica/i);
+    expect(img).toHaveAttribute(
+      'src',
+      '/assets/Logo-UNA-Rojo_FondoTransparente.png',
     );
   });
 });

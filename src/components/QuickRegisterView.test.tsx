@@ -354,6 +354,24 @@ describe('QuickRegisterView (registro de atenciones)', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('muestra el ciclo vigente aunque el catálogo de ciclos llegue después', async () => {
+    const cicloII: CicloDto = {
+      id: 8,
+      anio: 2026,
+      numero: 2,
+      fechaInicio: '2026-07-14',
+      fechaFin: '2026-11-28',
+    };
+    mockedApi.ciclos.mockResolvedValue([CICLOS[0] as CicloDto, cicloII]);
+    mockedApi.cicloActual.mockResolvedValue(cicloII);
+
+    render(<QuickRegisterView session={session} />);
+    await screen.findByText('Servicios');
+
+    const select = screen.getAllByRole('combobox')[0] as HTMLSelectElement;
+    await waitFor(() => expect(select.value).toBe('8'));
+  });
+
   it('el historial muestra el tiempo de las capacitaciones', async () => {
     mockedApi.registros.mockResolvedValue({
       data: [

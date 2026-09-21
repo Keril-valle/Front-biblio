@@ -108,7 +108,12 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
         setCategorias(cats);
         setCiclos(cic);
         setModulos(mods);
-        if (cic.length > 0) setCicloId(cic[0].id);
+        // Solo cae al primer ciclo si `cicloActual` aún no respondió: esa
+        // petición corre en paralelo y debe ganar (evita registrar en el
+        // ciclo equivocado por una carrera de red).
+        setCicloId((prev) =>
+          prev === null && cic.length > 0 ? cic[0].id : prev,
+        );
       })
       .catch(() => {
         if (mounted) setErrorMsg('No se pudieron cargar las categorías o ciclos.');
