@@ -10,7 +10,7 @@ export const CAMPUSES: Record<string, CampusInfo> = {
     code: 'BIB-NAY-01',
     description: 'Atención a la comunidad universitaria y regional en Nicoya. Registro de servicios de consulta, préstamo, salas de estudio y capacitaciones.',
     schedule: 'Lunes a Viernes: 8:00 am - 5:00 pm',
-    contactEmail: 'biblioteca.nayuribe@una.cr',
+    contactEmail: 'binicoya@una.cr',
     phone: '+506 2562-6200',
     badge: 'Campus Nicoya',
     statsPreview: {
@@ -28,7 +28,7 @@ export const CAMPUSES: Record<string, CampusInfo> = {
     code: 'BIB-RMRB-02',
     description: 'Atención especializada en recursos digitales, repositorio institucional y bibliotecología en el Campus Liberia.',
     schedule: 'Lunes a Viernes: 8:00 am - 5:00 pm',
-    contactEmail: 'biblioteca.liberia@una.cr',
+    contactEmail: 'biliberia@una.cr',
     phone: '+506 2562-6300',
     badge: 'Campus Liberia',
     statsPreview: {
