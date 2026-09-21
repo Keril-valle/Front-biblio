@@ -20,7 +20,8 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
   const [moduleFilter, setModuleFilter] = useState<number | ''>('');
   const [newCatName, setNewCatName] = useState('');
   const [newCatModule, setNewCatModule] = useState<number | ''>('');
-  const [newCatTipo, setNewCatTipo] = useState<'simple' | 'doble'>('simple');
+  const [newCatPadre, setNewCatPadre] = useState<number | ''>('');
+  const [newCatTipo, setNewCatTipo] = useState<'simple' | 'doble' | 'triple'>('simple');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -55,18 +56,30 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
     return byName && byModule;
   });
 
-  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  // Ordena por módulo y agrupa cada categoría raíz con sus subcategorías.
+  const ordenadas = [...filtered].sort((a, b) => {
+    if (a.moduloId !== b.moduloId) return a.moduloId - b.moduloId;
+    const raizA = a.categoriaPadreId ?? a.id;
+    const raizB = b.categoriaPadreId ?? b.id;
+    if (raizA !== raizB) return raizA - raizB;
+    const esHijaA = a.categoriaPadreId == null ? 0 : 1;
+    const esHijaB = b.categoriaPadreId == null ? 0 : 1;
+    if (esHijaA !== esHijaB) return esHijaA - esHijaB;
+    return a.nombre.localeCompare(b.nombre);
+  });
+
+  const totalPages = Math.max(1, Math.ceil(ordenadas.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const start = (safePage - 1) * PAGE_SIZE;
-  const paged = filtered.slice(start, start + PAGE_SIZE);
-  const end = Math.min(start + PAGE_SIZE, filtered.length);
+  const paged = ordenadas.slice(start, start + PAGE_SIZE);
+  const end = Math.min(start + PAGE_SIZE, ordenadas.length);
 
   // Si la lista se achica (ej. se desactiva la última fila de la página),
   // volver a una página válida.
   useEffect(() => {
-    setPage((p) => Math.min(p, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))));
+    setPage((p) => Math.min(p, Math.max(1, Math.ceil(ordenadas.length / PAGE_SIZE))));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtered.length, viewMode]);
+  }, [ordenadas.length, viewMode]);
 
   const handleViewChange = (mode: ViewMode) => {
     setViewMode(mode);
@@ -92,6 +105,38 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
   const moduloName = (cat: CategoriaDto) =>
     cat.modulo?.nombre ?? `Módulo ${cat.moduloId}`;
 
+  const etiquetaMetrica = (tipo: CategoriaDto['tipoMetrica']) =>
+    tipo === 'triple'
+      ? 'Cantidad + Personas + Tiempo'
+      : tipo === 'doble'
+        ? 'Cantidad + Personas'
+        : 'Cantidad';
+
+  // Categorías raíz de un módulo (candidatas a categoría padre).
+  const raicesDeModulo = (moduloId: number) =>
+    categories.filter(
+      (c) => c.activo && c.moduloId === moduloId && c.categoriaPadreId == null,
+    );
+
+  const handleMoveParent = async (cat: CategoriaDto, nuevoPadre: number | null) => {
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await api.actualizarCategoria(cat.id, { categoriaPadreId: nuevoPadre });
+      setToast({
+        id: Date.now(),
+        message: nuevoPadre
+          ? `«${cat.nombre}» ahora es subcategoría.`
+          : `«${cat.nombre}» ahora es una categoría raíz.`,
+        tone: 'info',
+      });
+      load();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al actualizar.';
+      setErrorMsg(message || 'No se pudo mover la categoría.');
+    }
+  };
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -107,9 +152,12 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
         moduloId: Number(newCatModule),
         nombre: newCatName.trim(),
         tipoMetrica: newCatTipo,
+        categoriaPadreId:
+          newCatPadre === '' ? undefined : Number(newCatPadre),
       });
       setSuccessMsg('✓ Categoría creada correctamente.');
       setNewCatName('');
+      setNewCatPadre('');
       load();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear.';
@@ -271,6 +319,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                   <tr className="border-b border-[#E3E1DA] text-[11px] uppercase tracking-wider text-[#034991]">
                     <th scope="col" className="px-4 py-3 font-semibold">Módulo</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Categoría</th>
+                    <th scope="col" className="hidden px-4 py-3 font-semibold md:table-cell">Categoría padre</th>
                     <th scope="col" className="hidden px-4 py-3 font-semibold sm:table-cell">Tipo de métrica</th>
                     <th scope="col" className="px-4 py-3 font-semibold">Estado</th>
                     <th scope="col" className="px-4 py-3 text-right font-semibold">
@@ -281,7 +330,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                 <tbody className="divide-y divide-[#E3E1DA]">
                   {filtered.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-xs text-[#6B6A64]">
+                      <td colSpan={6} className="px-4 py-8 text-center text-xs text-[#6B6A64]">
                         {hasFilters
                           ? 'Sin resultados para el filtro aplicado.'
                           : viewMode === 'activas'
@@ -298,10 +347,43 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                           </span>
                         </td>
                         <td className="px-4 py-3 font-medium text-[#262624]">
-                          {cat.nombre}
+                          {cat.categoriaPadreId != null && (
+                            <span className="mr-1 text-[#A7A7A9]">↳</span>
+                          )}
+                          <span className={cat.categoriaPadreId != null ? 'pl-2' : ''}>
+                            {cat.nombre}
+                          </span>
+                        </td>
+                        <td className="hidden px-4 py-3 text-xs text-[#6B6A64] md:table-cell">
+                          {viewMode === 'activas' ? (
+                            <select
+                              value={cat.categoriaPadreId ?? ''}
+                              onChange={(e) =>
+                                handleMoveParent(
+                                  cat,
+                                  e.target.value === '' ? null : Number(e.target.value),
+                                )
+                              }
+                              aria-label={`Categoría padre de ${cat.nombre}`}
+                              className="w-full max-w-[14rem] rounded-lg border border-[#E3E1DA] bg-white py-1.5 px-2 text-xs text-[#262624] outline-none focus:border-[#034991]"
+                            >
+                              <option value="">(categoría raíz)</option>
+                              {raicesDeModulo(cat.moduloId)
+                                .filter((r) => r.id !== cat.id)
+                                .map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    ↳ {r.nombre}
+                                  </option>
+                                ))}
+                            </select>
+                          ) : cat.categoriaPadreId != null ? (
+                            categories.find((c) => c.id === cat.categoriaPadreId)?.nombre ?? '—'
+                          ) : (
+                            '—'
+                          )}
                         </td>
                         <td className="hidden px-4 py-3 text-xs text-[#6B6A64] sm:table-cell">
-                          {cat.tipoMetrica === 'doble' ? 'Cantidad + Personas' : 'Cantidad'}
+                          {etiquetaMetrica(cat.tipoMetrica)}
                         </td>
                         <td className="px-4 py-3">
                           <span
@@ -444,11 +526,12 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
               </label>
               <select
                 value={newCatModule}
-                onChange={(e) =>
+                onChange={(e) => {
                   setNewCatModule(
                     e.target.value === '' ? '' : Number(e.target.value),
-                  )
-                }
+                  );
+                  setNewCatPadre('');
+                }}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000] bg-white"
               >
                 <option value="">Seleccionar módulo...</option>
@@ -460,17 +543,44 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
               </select>
             </div>
 
+            {newCatModule !== '' && (
+              <div>
+                <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
+                  Categoría padre (opcional)
+                </label>
+                <select
+                  value={newCatPadre}
+                  onChange={(e) =>
+                    setNewCatPadre(
+                      e.target.value === '' ? '' : Number(e.target.value),
+                    )
+                  }
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000] bg-white"
+                >
+                  <option value="">(categoría raíz)</option>
+                  {raicesDeModulo(Number(newCatModule)).map((r) => (
+                    <option key={r.id} value={r.id}>
+                      ↳ {r.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
                 Tipo de Métrica
               </label>
               <select
                 value={newCatTipo}
-                onChange={(e) => setNewCatTipo(e.target.value as 'simple' | 'doble')}
+                onChange={(e) =>
+                  setNewCatTipo(e.target.value as 'simple' | 'doble' | 'triple')
+                }
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000] bg-white"
               >
                 <option value="simple">Cantidad (simple)</option>
                 <option value="doble">Cantidad + Personas (doble)</option>
+                <option value="triple">Cantidad + Personas + Tiempo (capacitación)</option>
               </select>
             </div>
 

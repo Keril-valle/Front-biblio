@@ -15,12 +15,22 @@ const ciclo = (id: number, anio: number, numero: 1 | 2): CicloDto => ({
   fechaFin: '2026-06-20',
 });
 
+// Id estable por nombre: el agrupador usa categoriaId (no el nombre) para no
+// fusionar categorías homónimas de módulos distintos.
+const IDS: Record<string, number> = {};
+const idDe = (nombre: string): number => {
+  if (!IDS[nombre]) IDS[nombre] = Object.keys(IDS).length + 1;
+  return IDS[nombre];
+};
+
 const fila = (nombre: string, total: number): PorCategoriaDto => ({
-  categoriaId: 1,
+  categoriaId: idDe(nombre),
   categoriaNombre: nombre,
+  categoriaPadreNombre: '',
   moduloNombre: 'Servicios',
   total,
   totalPersonas: 0,
+  totalTiempo: 0,
 });
 
 describe('agruparPorCiclo', () => {
@@ -51,6 +61,32 @@ describe('agruparPorCiclo', () => {
       { categoria: 'Préstamos', iCiclo: 5, iiCiclo: 8 },
     ]);
     expect(totales).toEqual({ iCiclo: 22, iiCiclo: 11 });
+  });
+
+  it('no fusiona categorías homónimas con distinto id', () => {
+    const a: PorCategoriaDto = {
+      categoriaId: 100,
+      categoriaNombre: 'RAI',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Módulo X',
+      total: 4,
+      totalPersonas: 0,
+      totalTiempo: 0,
+    };
+    const b: PorCategoriaDto = {
+      categoriaId: 200,
+      categoriaNombre: 'RAI',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Módulo Y',
+      total: 6,
+      totalPersonas: 0,
+      totalTiempo: 0,
+    };
+
+    const { datos } = agruparPorCiclo([{ ciclo: ciclo(1, 2026, 1), rows: [a, b] }]);
+
+    expect(datos).toHaveLength(2);
+    expect(datos.map((d) => d.iCiclo).sort()).toEqual([4, 6]);
   });
 
   it('ordena descendente por total combinado de ambas series', () => {
@@ -92,11 +128,14 @@ describe('agruparPorCampus', () => {
 
 describe('agruparPorAnio', () => {
   const filaAnio = (nombre: string, anio: number, total: number): PorAnioDto => ({
+    categoriaId: idDe(nombre),
     categoriaNombre: nombre,
+    categoriaPadreNombre: '',
     moduloNombre: 'Servicios',
     anio,
     total,
     totalPersonas: 0,
+    totalTiempo: 0,
   });
 
   it('agrupa por año y publica el total de todos los años presentes', () => {

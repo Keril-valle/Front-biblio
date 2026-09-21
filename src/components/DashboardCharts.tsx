@@ -12,7 +12,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import type { CicloDto } from '../types';
+import type { CicloDto, NivelDesglose } from '../types';
+import { formatearDuracion } from '../utils/duracion';
 import { useEstadisticasDashboard } from './useEstadisticasDashboard';
 
 // Paleta categórica derivada solo de los colores oficiales UNA (rojo, azul
@@ -80,6 +81,13 @@ interface DashboardChartsProps {
   role: 'bibliotecologa' | 'jefa' | 'jefatura';
 }
 
+const etiquetaMetrica = (tipo: 'simple' | 'doble' | 'triple'): string =>
+  tipo === 'triple'
+    ? 'Cantidad + Personas + Tiempo'
+    : tipo === 'doble'
+      ? 'Cantidad + Personas'
+      : 'Cantidad';
+
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const isJefatura = role === 'jefa' || role === 'jefatura';
   const {
@@ -89,10 +97,14 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     anios,
     cicloId,
     moduloId,
+    categoriaId,
+    nivel,
     sedeId,
     comparisonMode,
     setCicloId,
     setModuloId,
+    setCategoriaId,
+    setNivel,
     setSedeId,
     setComparisonMode,
     kpis,
@@ -148,6 +160,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       ? 'Todos los módulos'
       : (modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado');
   const cicloSeleccionado = ciclos.find((c) => c.id === cicloId);
+  const categoriasFiltro = categorias.filter(
+    (c) => c.activo && (moduloId === '' || c.moduloId === moduloId),
+  );
   const nombreCampusSeleccionado =
     sedeId === 1 ? 'Campus Nicoya' : sedeId === 2 ? 'Campus Liberia' : 'Ambos campus';
   // Resumen de totales por serie para verificación visual inmediata.
@@ -203,6 +218,40 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           </select>
         </div>
 
+        <div>
+          <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
+            Nivel
+          </label>
+          <select
+            value={nivel}
+            onChange={(e) => setNivel(e.target.value as NivelDesglose)}
+            className="px-3 py-2 rounded-lg border border-[#E3E1DA] text-sm bg-white outline-none focus:border-[#990000]"
+          >
+            <option value="categoria">Categoría</option>
+            <option value="subcategoria">Subcategoría</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
+            Categoría
+          </label>
+          <select
+            value={categoriaId}
+            onChange={(e) =>
+              setCategoriaId(e.target.value === '' ? '' : Number(e.target.value))
+            }
+            className="px-3 py-2 rounded-lg border border-[#E3E1DA] text-sm bg-white outline-none focus:border-[#990000]"
+          >
+            <option value="">Todas las categorías</option>
+            {categoriasFiltro.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.categoriaPadreId != null ? `↳ ${c.nombre}` : c.nombre}
+              </option>
+            ))}
+          </select>
+        </div>
+
         {isJefatura && (
           <div>
             <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
@@ -227,7 +276,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       </section>
 
       {/* 1. KPI Cards Panel */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 gap-4">
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Atenciones del Ciclo
@@ -266,6 +315,26 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           )}
           <p className="text-[11px] text-[#6B6A64] mt-1">
             Capacitaciones y actividades con personas
+          </p>
+        </div>
+
+        <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
+          <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
+            Tiempo de Capacitación
+          </span>
+          {estadoKpis === 'cargando' ? (
+            <SkeletonCaja className="h-9 w-28 mt-2" />
+          ) : estadoKpis === 'error' ? (
+            <p className="text-sm font-semibold text-[#990000] mt-2">
+              No se pudieron cargar los datos.
+            </p>
+          ) : (
+            <p className="text-3xl font-bold text-[#034991] font-mono mt-2">
+              {formatearDuracion(kpis.totalTiempo)}
+            </p>
+          )}
+          <p className="text-[11px] text-[#6B6A64] mt-1">
+            Horas:minutos acumulados en capacitaciones
           </p>
         </div>
       </section>
@@ -633,7 +702,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                     <span>
                       <strong className="text-[#262624]">{cat.nombre}</strong>
                       <span className="block text-[11px] text-[#6B6A64]">
-                        {cat.modulo?.nombre} · {cat.tipoMetrica === 'doble' ? 'Cantidad + Personas' : 'Cantidad'}
+                        {cat.modulo?.nombre} · {etiquetaMetrica(cat.tipoMetrica)}
                       </span>
                     </span>
                   </div>

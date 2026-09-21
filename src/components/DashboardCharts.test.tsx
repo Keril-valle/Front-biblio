@@ -76,21 +76,28 @@ function mockCargaBase() {
       tipoMetrica: 'simple',
       activo: true,
       creadoPor: null,
+      categoriaPadreId: null,
       modulo: { id: 1, nombre: 'Servicios' },
     },
   ]);
-  mockedApi.kpis.mockResolvedValue({ totalAtenciones: 42, totalPersonas: 7 });
+  mockedApi.kpis.mockResolvedValue({
+    totalAtenciones: 42,
+    totalPersonas: 7,
+    totalTiempo: 0,
+  });
   mockedApi.composicion.mockResolvedValue([
-    { nombre: 'Consultas en sala', valor: 42 },
+    { categoriaId: 5, nombre: 'Consultas en sala', valor: 42 },
   ]);
   mockedApi.porCategoria.mockImplementation((cicloId?: number) =>
     Promise.resolve([
       {
         categoriaId: 5,
         categoriaNombre: 'Consultas en sala',
+        categoriaPadreNombre: '',
         moduloNombre: 'Servicios',
         total: cicloId === 10 ? 30 : 12,
         totalPersonas: 0,
+        totalTiempo: 0,
       },
     ]),
   );
@@ -133,7 +140,14 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await screen.findByText('Atenciones del Ciclo');
 
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined, expect.any(AbortSignal));
+      expect(mockedApi.kpis).toHaveBeenCalledWith(
+        11,
+        undefined,
+        undefined,
+        expect.any(AbortSignal),
+        'categoria',
+        undefined,
+      );
     });
   });
 
@@ -146,7 +160,14 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await user.selectOptions(combos[0] as HTMLSelectElement, '11');
 
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(11, undefined, undefined, expect.any(AbortSignal));
+      expect(mockedApi.kpis).toHaveBeenCalledWith(
+        11,
+        undefined,
+        undefined,
+        expect.any(AbortSignal),
+        'categoria',
+        undefined,
+      );
     });
   });
 
@@ -160,13 +181,20 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     ).toBeInTheDocument();
 
     const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos[2] as HTMLSelectElement, '2');
+    await user.selectOptions(combos[4] as HTMLSelectElement, '2');
 
     expect(
       await screen.findByText('Campus Liberia — Biblioteca Rose Marie Ruiz Bravo'),
     ).toBeInTheDocument();
     await waitFor(() => {
-      expect(mockedApi.kpis).toHaveBeenCalledWith(expect.any(Number), 2, undefined, expect.any(AbortSignal));
+      expect(mockedApi.kpis).toHaveBeenCalledWith(
+        expect.any(Number),
+        2,
+        undefined,
+        expect.any(AbortSignal),
+        'categoria',
+        undefined,
+      );
     });
   });
 
@@ -184,6 +212,8 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
         undefined,
         1,
         expect.any(AbortSignal),
+        'categoria',
+        undefined,
       );
     });
   });
@@ -266,7 +296,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
 
     // Al filtrar un solo campus el botón desaparece y cae a I/II Ciclo.
     const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos[2] as HTMLSelectElement, '2');
+    await user.selectOptions(combos[4] as HTMLSelectElement, '2');
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Campus' })).not.toBeInTheDocument();
@@ -282,22 +312,28 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
   it('en modo anual el Total del Módulo muestra el acumulado de todos los años', async () => {
     const user = userEvent.setup();
     mockedApi.composicion.mockResolvedValue([
-      { nombre: 'Consultas en sala', valor: 7 },
+      { categoriaId: 5, nombre: 'Consultas en sala', valor: 7 },
     ]);
     mockedApi.porAnio.mockResolvedValue([
       {
+        categoriaId: 5,
         categoriaNombre: 'Consultas en sala',
+        categoriaPadreNombre: '',
         moduloNombre: 'Servicios',
         anio: 2025,
         total: 10,
         totalPersonas: 0,
+        totalTiempo: 0,
       },
       {
+        categoriaId: 5,
         categoriaNombre: 'Consultas en sala',
+        categoriaPadreNombre: '',
         moduloNombre: 'Servicios',
         anio: 2026,
         total: 32,
         totalPersonas: 0,
+        totalTiempo: 0,
       },
     ]);
     render(<DashboardCharts role="jefa" />);
@@ -337,7 +373,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await screen.findByText('Atenciones del Ciclo');
 
     const combos = screen.getAllByRole('combobox');
-    expect(combos).toHaveLength(2); // ciclo + módulo, sin campus
+    expect(combos).toHaveLength(4); // ciclo + módulo + nivel + categoría, sin campus
     expect(screen.queryByRole('button', { name: 'Campus' })).not.toBeInTheDocument();
 
     const chart = await screen.findByTestId('recharts-BarChart');
@@ -357,24 +393,37 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
 
   it('descarta respuestas obsoletas al cambiar de ciclo rápidamente', async () => {
     const user = userEvent.setup();
-    let resolvePrimero: (v: { totalAtenciones: number; totalPersonas: number }) => void = () => {};
-    const primero = new Promise<{ totalAtenciones: number; totalPersonas: number }>(
-      (res) => {
-        resolvePrimero = res;
-      },
-    );
-    let resolveCompPrimera: (v: { nombre: string; valor: number }[]) => void = () => {};
-    const compPrimera = new Promise<{ nombre: string; valor: number }[]>((res) => {
+    let resolvePrimero: (v: {
+      totalAtenciones: number;
+      totalPersonas: number;
+      totalTiempo: number;
+    }) => void = () => {};
+    const primero = new Promise<{
+      totalAtenciones: number;
+      totalPersonas: number;
+      totalTiempo: number;
+    }>((res) => {
+      resolvePrimero = res;
+    });
+    let resolveCompPrimera: (v: { categoriaId: number; nombre: string; valor: number }[]) => void =
+      () => {};
+    const compPrimera = new Promise<
+      { categoriaId: number; nombre: string; valor: number }[]
+    >((res) => {
       resolveCompPrimera = res;
     });
 
     mockedApi.kpis.mockImplementation((cicloId?: number) => {
       if (cicloId === 10) return primero;
-      return Promise.resolve({ totalAtenciones: 999, totalPersonas: 3 });
+      return Promise.resolve({
+        totalAtenciones: 999,
+        totalPersonas: 3,
+        totalTiempo: 0,
+      });
     });
     mockedApi.composicion.mockImplementation((cicloId?: number) => {
       if (cicloId === 10) return compPrimera;
-      return Promise.resolve([{ nombre: 'Categoría nueva', valor: 5 }]);
+      return Promise.resolve([{ categoriaId: 6, nombre: 'Categoría nueva', valor: 5 }]);
     });
 
     render(<DashboardCharts role="jefa" />);
@@ -389,8 +438,8 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     expect(await screen.findByText('999')).toBeInTheDocument();
 
     // La respuesta obsoleta del ciclo 10 no debe sobrescribir la vista.
-    resolvePrimero({ totalAtenciones: 1, totalPersonas: 1 });
-    resolveCompPrimera([{ nombre: 'Categoría nueva', valor: 1 }]);
+    resolvePrimero({ totalAtenciones: 1, totalPersonas: 1, totalTiempo: 0 });
+    resolveCompPrimera([{ categoriaId: 6, nombre: 'Categoría nueva', valor: 1 }]);
     await waitFor(() => {
       expect(screen.queryByText('1')).not.toBeInTheDocument();
     });
@@ -398,14 +447,23 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
   });
 
   it('durante la carga muestra esqueletos en vez de totales parciales', async () => {
-    let resolveKpis: (v: { totalAtenciones: number; totalPersonas: number }) => void = () => {};
-    const kpisPendiente = new Promise<{ totalAtenciones: number; totalPersonas: number }>(
-      (res) => {
-        resolveKpis = res;
-      },
-    );
-    let resolveComp: (v: { nombre: string; valor: number }[]) => void = () => {};
-    const compPendiente = new Promise<{ nombre: string; valor: number }[]>((res) => {
+    let resolveKpis: (v: {
+      totalAtenciones: number;
+      totalPersonas: number;
+      totalTiempo: number;
+    }) => void = () => {};
+    const kpisPendiente = new Promise<{
+      totalAtenciones: number;
+      totalPersonas: number;
+      totalTiempo: number;
+    }>((res) => {
+      resolveKpis = res;
+    });
+    let resolveComp: (v: { categoriaId: number; nombre: string; valor: number }[]) => void =
+      () => {};
+    const compPendiente = new Promise<
+      { categoriaId: number; nombre: string; valor: number }[]
+    >((res) => {
       resolveComp = res;
     });
     mockedApi.kpis.mockImplementation(() => kpisPendiente);
@@ -416,8 +474,8 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     expect(screen.getByTestId('skeleton-kpis')).toBeInTheDocument();
     expect(screen.getByTestId('skeleton-composicion')).toBeInTheDocument();
 
-    resolveKpis({ totalAtenciones: 7, totalPersonas: 2 });
-    resolveComp([{ nombre: 'Servicios', valor: 7 }]);
+    resolveKpis({ totalAtenciones: 7, totalPersonas: 2, totalTiempo: 0 });
+    resolveComp([{ categoriaId: 1, nombre: 'Servicios', valor: 7 }]);
 
     expect((await screen.findAllByText('7')).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('skeleton-kpis')).not.toBeInTheDocument();
@@ -425,7 +483,11 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
   });
 
   it('sin datos muestra estado vacío y totales en cero', async () => {
-    mockedApi.kpis.mockResolvedValue({ totalAtenciones: 0, totalPersonas: 0 });
+    mockedApi.kpis.mockResolvedValue({
+      totalAtenciones: 0,
+      totalPersonas: 0,
+      totalTiempo: 0,
+    });
     mockedApi.composicion.mockResolvedValue([]);
     mockedApi.porCategoria.mockResolvedValue([]);
 

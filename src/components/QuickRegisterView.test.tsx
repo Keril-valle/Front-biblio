@@ -37,6 +37,7 @@ const CATEGORIAS: CategoriaDto[] = [
     tipoMetrica: 'simple',
     activo: true,
     creadoPor: null,
+    categoriaPadreId: null,
   },
   {
     id: 12,
@@ -45,6 +46,34 @@ const CATEGORIAS: CategoriaDto[] = [
     tipoMetrica: 'doble',
     activo: true,
     creadoPor: null,
+    categoriaPadreId: null,
+  },
+  {
+    id: 15,
+    moduloId: 1,
+    nombre: 'Computadoras',
+    tipoMetrica: 'simple',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: null,
+  },
+  {
+    id: 16,
+    moduloId: 1,
+    nombre: 'Préstamo en Campus',
+    tipoMetrica: 'simple',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: 15,
+  },
+  {
+    id: 17,
+    moduloId: 1,
+    nombre: 'Capacitaciones',
+    tipoMetrica: 'triple',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: null,
   },
 ];
 
@@ -77,6 +106,7 @@ function mockCargaInicial() {
     cicloId: 7,
     cantidad: 3,
     cantidadSecundaria: null,
+    cantidadTerciaria: null,
     fechaHora: '2026-03-01 10:00:00',
     observaciones: null,
   });
@@ -115,6 +145,7 @@ describe('QuickRegisterView (registro de atenciones)', () => {
         cicloId: 7,
         cantidad: 1,
         cantidadSecundaria: undefined,
+        cantidadTerciaria: undefined,
         observaciones: undefined,
       });
     });
@@ -238,5 +269,123 @@ describe('QuickRegisterView (registro de atenciones)', () => {
         expect.objectContaining({ cantidad: 1 }),
       );
     });
+  });
+
+  it('categoría con subcategorías exige elegir una y envía la subcategoría', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('Servicios'));
+    await user.click(await screen.findByText('Computadoras'));
+
+    // Aparece el paso 3 de subcategoría.
+    expect(
+      await screen.findByText(/Subcategoría de Servicio/),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: '+ Guardar Registro de Atención' }),
+    );
+    expect(
+      await screen.findByText('Seleccione una subcategoría de la categoría elegida.'),
+    ).toBeInTheDocument();
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByText('Préstamo en Campus'));
+    await user.click(
+      screen.getByRole('button', { name: '+ Guardar Registro de Atención' }),
+    );
+
+    await waitFor(() => {
+      expect(mockedApi.crearRegistro).toHaveBeenCalledWith(
+        expect.objectContaining({ categoriaId: 16 }),
+      );
+    });
+  });
+
+  it('capacitación (triple) pide personas y tiempo, y los envía', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('Servicios'));
+    await user.click(await screen.findByText('Capacitaciones'));
+
+    const personas = await screen.findByPlaceholderText('Ej. 20');
+    await user.type(personas, '12');
+    const tiempo = await screen.findByPlaceholderText('Ej. 1:30');
+    await user.type(tiempo, '1:30');
+
+    await user.click(
+      screen.getByRole('button', { name: '+ Guardar Registro de Atención' }),
+    );
+
+    await waitFor(() => {
+      expect(mockedApi.crearRegistro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoriaId: 17,
+          cantidadSecundaria: 12,
+          cantidadTerciaria: '1:30',
+        }),
+      );
+    });
+  });
+
+  it('al elegir una categoría colapsa el resto y al tocarla de nuevo reaparecen', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('Servicios'));
+    expect(await screen.findByText('Taller de inducción')).toBeInTheDocument();
+
+    await user.click(screen.getByText('Consultas en sala'));
+
+    await waitFor(() =>
+      expect(screen.queryByText('Taller de inducción')).not.toBeInTheDocument(),
+    );
+    expect(
+      screen.getByText('Tocá la categoría de nuevo para ver las demás.'),
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByText('Consultas en sala'));
+
+    expect(await screen.findByText('Taller de inducción')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Tocá la categoría de nuevo para ver las demás.'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('el historial muestra el tiempo de las capacitaciones', async () => {
+    mockedApi.registros.mockResolvedValue({
+      data: [
+        {
+          id: 'r-cap',
+          usuarioId: 'u-1',
+          sedeId: 1,
+          categoriaId: 17,
+          cicloId: 7,
+          cantidad: 1,
+          cantidadSecundaria: 12,
+          cantidadTerciaria: 90,
+          fechaHora: '2026-03-01 10:00:00',
+          observaciones: null,
+          categoria: {
+            id: 17,
+            moduloId: 1,
+            nombre: 'Capacitaciones',
+            tipoMetrica: 'triple',
+            activo: true,
+            creadoPor: null,
+            categoriaPadreId: null,
+          },
+        },
+      ],
+      total: 1,
+      page: 1,
+      limit: 20,
+    });
+
+    render(<QuickRegisterView session={session} />);
+
+    expect(await screen.findByText('12 personas · 1:30')).toBeInTheDocument();
   });
 });

@@ -6,6 +6,7 @@ import type {
   ComposicionDto,
   KpisDto,
   ModuloDto,
+  NivelDesglose,
 } from '../types';
 import {
   agruparPorAnio,
@@ -24,10 +25,14 @@ export interface UseEstadisticasDashboardResult {
   anios: number[];
   cicloId: number | '';
   moduloId: number | '';
+  categoriaId: number | '';
+  nivel: NivelDesglose;
   sedeId: number | '';
   comparisonMode: ModoComparacion;
   setCicloId: (v: number | '') => void;
   setModuloId: (v: number | '') => void;
+  setCategoriaId: (v: number | '') => void;
+  setNivel: (n: NivelDesglose) => void;
   setSedeId: (v: number | '') => void;
   setComparisonMode: (m: ModoComparacion) => void;
   kpis: KpisDto;
@@ -56,10 +61,16 @@ export function useEstadisticasDashboard(
   const [categorias, setCategorias] = useState<CategoriaDto[]>([]);
   const [cicloId, setCicloId] = useState<number | ''>('');
   const [moduloId, setModuloId] = useState<number | ''>('');
+  const [categoriaId, setCategoriaId] = useState<number | ''>('');
+  const [nivel, setNivel] = useState<NivelDesglose>('categoria');
   const [sedeId, setSedeId] = useState<number | ''>('');
   const [comparisonMode, setComparisonMode] = useState<ModoComparacion>('ciclos');
 
-  const [kpis, setKpis] = useState<KpisDto>({ totalAtenciones: 0, totalPersonas: 0 });
+  const [kpis, setKpis] = useState<KpisDto>({
+    totalAtenciones: 0,
+    totalPersonas: 0,
+    totalTiempo: 0,
+  });
   const [estadoKpis, setEstadoKpis] = useState<EstadoSeccion>('cargando');
   const [barData, setBarData] = useState<BarChartDataItem[]>([]);
   const [estadoComparativo, setEstadoComparativo] = useState<EstadoSeccion>('cargando');
@@ -112,8 +123,14 @@ export function useEstadisticasDashboard(
     };
   }, []);
 
+  // Al cambiar de módulo, el filtro de categoría se reinicia: no puede quedar
+  // seleccionada una categoría de otro módulo.
+  useEffect(() => {
+    setCategoriaId('');
+  }, [moduloId]);
+
   // Panel de KPIs + composición: una sola fase cancelable por combinación de
-  // filtros (ciclo/módulo/campus). Cada sección tiene su propio estado.
+  // filtros (ciclo/módulo/categoría/nivel/campus). Cada sección tiene su estado.
   useEffect(() => {
     if (cicloId === '') return;
 
@@ -127,10 +144,11 @@ export function useEstadisticasDashboard(
 
     const cid = Number(cicloId);
     const mid = moduloId === '' ? undefined : Number(moduloId);
+    const catId = categoriaId === '' ? undefined : Number(categoriaId);
     const sid = sedeId === '' ? undefined : Number(sedeId);
 
     api
-      .kpis(cid, sid, mid, controller.signal)
+      .kpis(cid, sid, mid, controller.signal, nivel, catId)
       .then((k) => {
         if (id !== idPanel.current) return;
         setKpis(k);
@@ -142,7 +160,7 @@ export function useEstadisticasDashboard(
       });
 
     api
-      .composicion(cid, mid, sid, controller.signal)
+      .composicion(cid, mid, sid, controller.signal, nivel, catId)
       .then((comp) => {
         if (id !== idPanel.current) return;
         setComposition(comp);
@@ -153,7 +171,7 @@ export function useEstadisticasDashboard(
         setEstadoComposicion('error');
       });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cicloId, moduloId, sedeId]);
+  }, [cicloId, moduloId, categoriaId, nivel, sedeId]);
 
   // Comparativo por categoría según el modo (ciclos vs campus vs anual). El
   // modo campus solo aplica con "Ambos campus"; con un campus filtrado cae al
@@ -174,6 +192,7 @@ export function useEstadisticasDashboard(
 
     const cid = Number(cicloId);
     const mid = moduloId === '' ? undefined : Number(moduloId);
+    const catId = categoriaId === '' ? undefined : Number(categoriaId);
     const sid = sedeId === '' ? undefined : Number(sedeId);
 
     const aplicar = (resultado: {
@@ -197,15 +216,15 @@ export function useEstadisticasDashboard(
       Promise.all(
         ciclos.map(async (c) => ({
           ciclo: c,
-          rows: await api.porCategoria(c.id, mid, sid, controller.signal),
+          rows: await api.porCategoria(c.id, mid, sid, controller.signal, nivel, catId),
         })),
       )
         .then((rowsPorCiclo) => aplicar(agruparPorCiclo(rowsPorCiclo)))
         .catch(fallar);
     } else if (modoEfectivo === 'campus') {
       Promise.all([
-        api.porCategoria(cid, mid, 1, controller.signal),
-        api.porCategoria(cid, mid, 2, controller.signal),
+        api.porCategoria(cid, mid, 1, controller.signal, nivel, catId),
+        api.porCategoria(cid, mid, 2, controller.signal, nivel, catId),
       ])
         .then(([rowsNicoya, rowsLiberia]) =>
           aplicar(agruparPorCampus(rowsNicoya, rowsLiberia)),
@@ -213,12 +232,12 @@ export function useEstadisticasDashboard(
         .catch(fallar);
     } else {
       api
-        .porAnio(mid, sid, undefined, controller.signal)
+        .porAnio(mid, sid, undefined, controller.signal, nivel, catId)
         .then((rows) => aplicar(agruparPorAnio(rows, anios)))
         .catch(fallar);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comparisonMode, cicloId, moduloId, sedeId, ciclos]);
+  }, [comparisonMode, cicloId, moduloId, categoriaId, nivel, sedeId, ciclos]);
 
   // Al desmontar, se aborta cualquier petición pendiente.
   useEffect(() => {
@@ -235,10 +254,14 @@ export function useEstadisticasDashboard(
     anios,
     cicloId,
     moduloId,
+    categoriaId,
+    nivel,
     sedeId,
     comparisonMode,
     setCicloId,
     setModuloId,
+    setCategoriaId,
+    setNivel,
     setSedeId,
     setComparisonMode,
     kpis,
