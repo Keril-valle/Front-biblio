@@ -31,6 +31,7 @@ const CATEGORIAS: CategoriaDto[] = [
     tipoMetrica: 'simple',
     activo: true,
     creadoPor: null,
+    categoriaPadreId: null,
   },
   {
     id: 12,
@@ -39,6 +40,7 @@ const CATEGORIAS: CategoriaDto[] = [
     tipoMetrica: 'doble',
     activo: true,
     creadoPor: null,
+    categoriaPadreId: null,
   },
   {
     id: 13,
@@ -47,6 +49,7 @@ const CATEGORIAS: CategoriaDto[] = [
     tipoMetrica: 'simple',
     activo: false,
     creadoPor: null,
+    categoriaPadreId: null,
   },
 ];
 
@@ -127,6 +130,7 @@ describe('CategoriesView', () => {
       tipoMetrica: 'simple' as const,
       activo: true,
       creadoPor: null,
+      categoriaPadreId: null,
     }));
     mockedApi.categorias.mockResolvedValue(many);
     render(<CategoriesView session={session} />);
@@ -159,6 +163,7 @@ describe('CategoriesView', () => {
       tipoMetrica: 'simple' as const,
       activo: true,
       creadoPor: null,
+      categoriaPadreId: null,
     }));
     mockedApi.categorias.mockResolvedValue(many);
     render(<CategoriesView session={session} />);
@@ -202,6 +207,7 @@ describe('CategoriesView', () => {
         tipoMetrica: 'simple',
         activo: true,
         creadoPor: null,
+        categoriaPadreId: null,
       },
       {
         id: 21,
@@ -210,6 +216,7 @@ describe('CategoriesView', () => {
         tipoMetrica: 'simple',
         activo: true,
         creadoPor: null,
+        categoriaPadreId: null,
       },
     ]);
     render(<CategoriesView session={session} />);
@@ -280,5 +287,45 @@ describe('CategoriesView', () => {
 
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar aviso' }));
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('muestra subcategorías anidadas y permite moverlas de categoría padre', async () => {
+    mockedApi.categorias.mockResolvedValue([
+      {
+        id: 11,
+        moduloId: 1,
+        nombre: 'Computadoras',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+        categoriaPadreId: null,
+      },
+      {
+        id: 16,
+        moduloId: 1,
+        nombre: 'Préstamo en Campus',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+        categoriaPadreId: 11,
+      },
+    ]);
+    render(<CategoriesView session={session} />);
+
+    await screen.findByText('Computadoras');
+    expect(screen.getByText('Préstamo en Campus')).toBeInTheDocument();
+
+    const selectorPadre = screen.getByRole('combobox', {
+      name: 'Categoría padre de Préstamo en Campus',
+    });
+    expect(selectorPadre).toHaveValue('11');
+
+    await userEvent.selectOptions(selectorPadre, '');
+
+    await waitFor(() =>
+      expect(mockedApi.actualizarCategoria).toHaveBeenCalledWith(16, {
+        categoriaPadreId: null,
+      }),
+    );
   });
 });
