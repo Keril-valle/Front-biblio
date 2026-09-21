@@ -47,17 +47,17 @@ function comparadorTotalDesc(claves: readonly string[]) {
 export function agruparPorCiclo(
   rowsPorCiclo: { ciclo: CicloDto; rows: PorCategoriaDto[] }[],
 ): ResultadoComparativo {
-  const mapa = new Map<string, BarChartDataItem>();
+  const mapa = new Map<number, BarChartDataItem>();
   for (const { ciclo, rows } of rowsPorCiclo) {
     const clave: 'iCiclo' | 'iiCiclo' = ciclo.numero === 1 ? 'iCiclo' : 'iiCiclo';
     for (const row of rows) {
-      const entry = mapa.get(row.categoriaNombre) ?? {
+      const entry = mapa.get(row.categoriaId) ?? {
         categoria: row.categoriaNombre,
         iCiclo: 0,
         iiCiclo: 0,
       };
       entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
-      mapa.set(row.categoriaNombre, entry);
+      mapa.set(row.categoriaId, entry);
     }
   }
   const datos = Array.from(mapa.values()).sort(comparadorTotalDesc(CLAVES_CICLO));
@@ -71,16 +71,16 @@ export function agruparPorCampus(
   rowsNicoya: PorCategoriaDto[],
   rowsLiberia: PorCategoriaDto[],
 ): ResultadoComparativo {
-  const mapa = new Map<string, BarChartDataItem>();
+  const mapa = new Map<number, BarChartDataItem>();
   const acumular = (rows: PorCategoriaDto[], clave: 'nicoya' | 'liberia') => {
     for (const row of rows) {
-      const entry = mapa.get(row.categoriaNombre) ?? {
+      const entry = mapa.get(row.categoriaId) ?? {
         categoria: row.categoriaNombre,
         nicoya: 0,
         liberia: 0,
       };
       entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
-      mapa.set(row.categoriaNombre, entry);
+      mapa.set(row.categoriaId, entry);
     }
   };
   acumular(rowsNicoya, 'nicoya');
@@ -90,7 +90,8 @@ export function agruparPorCampus(
 }
 
 /**
- * Agrupa por año lectivo de todos los años presentes en los datos.
+ * Agrupa por año lectivo de todos los años presentes en los datos, keyed por
+ * categoría (id) para no fusionar categorías homónimas.
  * `anios` (derivados de los ciclos) ordena los años del eje; los totales
  * se acumulan sobre los años realmente presentes en las filas, igual que el
  * comportamiento anterior: así el acumulado anual es completo aunque los
@@ -100,18 +101,25 @@ export function agruparPorAnio(
   rows: PorAnioDto[],
   anios: number[],
 ): ResultadoComparativo {
-  const totalesPorAnio = new Map<string, Record<string, number | undefined>>();
+  const porCategoria = new Map<
+    number,
+    { categoria: string; porAnio: Record<string, number | undefined> }
+  >();
   const totales: Record<string, number> = {};
   for (const row of rows) {
-    const entrada = totalesPorAnio.get(row.categoriaNombre) ?? {};
-    entrada[String(row.anio)] = ((entrada[String(row.anio)] as number) ?? 0) + row.total;
-    totalesPorAnio.set(row.categoriaNombre, entrada);
+    const entrada = porCategoria.get(row.categoriaId) ?? {
+      categoria: row.categoriaNombre,
+      porAnio: {},
+    };
+    entrada.porAnio[String(row.anio)] =
+      ((entrada.porAnio[String(row.anio)] as number) ?? 0) + row.total;
+    porCategoria.set(row.categoriaId, entrada);
     totales[String(row.anio)] = (totales[String(row.anio)] ?? 0) + row.total;
   }
   const claves = anios.map(String);
-  const datos = Array.from(totalesPorAnio.entries())
+  const datos = Array.from(porCategoria.values())
     .map(
-      ([categoria, porAnio]): BarChartDataItem => ({
+      ({ categoria, porAnio }): BarChartDataItem => ({
         categoria,
         ...porAnio,
       }),

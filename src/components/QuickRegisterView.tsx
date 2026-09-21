@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { CAMPUSES } from '../data/campuses';
 import { api } from '../api/client';
+import { formatearDuracion } from '../utils/duracion';
 import {
   AttendanceRecord,
   CampusId,
@@ -28,9 +30,11 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
 
   const [moduloId, setModuloId] = useState<number | null>(null);
   const [categoriaId, setCategoriaId] = useState<number | null>(null);
+  const [subcategoriaId, setSubcategoriaId] = useState<number | null>(null);
   const [cicloId, setCicloId] = useState<number | null>(null);
   const [count, setCount] = useState<number>(1);
   const [cantidadSecundaria, setCantidadSecundaria] = useState<string>('');
+  const [tiempo, setTiempo] = useState<string>('');
   const [notes, setNotes] = useState('');
   const [records, setRecords] = useState<AttendanceRecord[]>([]);
   const [pagina, setPagina] = useState(1);
@@ -45,17 +49,56 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
   const [errorMsg, setErrorMsg] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const categoriaSeleccionada = categorias.find((c) => c.id === categoriaId);
+  // La categoría raíz elegida en el paso 2 y, si existe, la subcategoría del paso 3.
+  const categoriaRaizSeleccionada = categorias.find((c) => c.id === categoriaId);
+  const subcategoriasDeCategoria =
+    categoriaId == null
+      ? []
+      : categorias.filter(
+          (c) => c.activo && c.categoriaPadreId === categoriaId,
+        );
+  const subcategoriaSeleccionada = categorias.find((c) => c.id === subcategoriaId);
+  const categoriaSeleccionada = subcategoriaSeleccionada ?? categoriaRaizSeleccionada;
+  // Nivel más específico que se envía al backend.
+  const categoriaEfectivaId = subcategoriaSeleccionada
+    ? subcategoriaSeleccionada.id
+    : categoriaId;
+
+  const etiquetaMetrica = (tipo: CategoriaDto['tipoMetrica']) =>
+    tipo === 'triple'
+      ? 'Cantidad + Personas + Tiempo'
+      : tipo === 'doble'
+        ? 'Cantidad + Personas'
+        : 'Cantidad';
 
   // Módulos que tienen al menos una categoría activa para registrar.
   const modulosConCategorias = modulos.filter((m) =>
     categorias.some((c) => c.moduloId === m.id && c.activo),
   );
 
-  // Categorías visibles: solo las activas del módulo seleccionado.
-  const categoriasDelModulo = categorias.filter(
-    (c) => c.activo && c.moduloId === moduloId,
+  // Categorías raíz visibles (las subcategorías se eligen en el paso 3).
+  const categoriasRaizDelModulo = categorias.filter(
+    (c) => c.activo && c.moduloId === moduloId && c.categoriaPadreId == null,
   );
+
+  // Con una categoría elegida el resto se colapsa (queda solo la elegida);
+  // al tocar la elegida de nuevo, vuelven a aparecer para cambiar de servicio.
+  const categoriasVisibles =
+    categoriaId == null
+      ? categoriasRaizDelModulo
+      : categoriasRaizDelModulo.filter((c) => c.id === categoriaId);
+
+  const reducirMovimiento = useReducedMotion();
+  const transicion = {
+    duration: reducirMovimiento ? 0 : 0.18,
+    ease: [0.23, 1, 0.32, 1] as const,
+  };
+  const entrada = reducirMovimiento
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.96 };
+  const salida = reducirMovimiento
+    ? { opacity: 0 }
+    : { opacity: 0, scale: 0.96 };
 
   useEffect(() => {
     let mounted = true;
@@ -95,9 +138,12 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             minute: '2-digit',
           }),
           serviceType: r.categoria?.nombre ?? `Categoría ${r.categoriaId}`,
-          userType: r.cantidadSecundaria
-            ? `${r.cantidadSecundaria} personas atendidas`
-            : 'Atención directa',
+          userType:
+            r.cantidadTerciaria != null
+              ? `${r.cantidadSecundaria ?? 0} personas · ${formatearDuracion(r.cantidadTerciaria)}`
+              : r.cantidadSecundaria
+                ? `${r.cantidadSecundaria} personas atendidas`
+                : 'Atención directa',
           count: r.cantidad,
           campus: r.sedeId === 1 ? 'nicoya' : 'liberia',
           registeredBy: r.usuario?.nombreCompleto ?? session.name,
@@ -124,14 +170,32 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
       setErrorMsg('Seleccione una categoría y un ciclo lectivo.');
       return;
     }
+    if (subcategoriasDeCategoria.length > 0 && !subcategoriaId) {
+      setErrorMsg('Seleccione una subcategoría de la categoría elegida.');
+      return;
+    }
+
+    const metrica = categoriaSeleccionada?.tipoMetrica ?? 'simple';
+    if (metrica !== 'simple' && !cantidadSecundaria.trim()) {
+      setErrorMsg('Indique la cantidad de personas atendidas.');
+      return;
+    }
+    if (metrica === 'triple' && !tiempo.trim()) {
+      setErrorMsg('Indique el tiempo con formato horas:minutos (ej. 1:30).');
+      return;
+    }
 
     setIsLoading(true);
     try {
       await api.crearRegistro({
-        categoriaId,
+        categoriaId: categoriaEfectivaId as number,
         cicloId,
         cantidad: Math.max(1, count),
-        cantidadSecundaria: cantidadSecundaria ? Number(cantidadSecundaria) : undefined,
+        cantidadSecundaria:
+          metrica !== 'simple' && cantidadSecundaria
+            ? Number(cantidadSecundaria)
+            : undefined,
+        cantidadTerciaria: metrica === 'triple' ? tiempo.trim() : undefined,
         observaciones: notes.trim() || undefined,
         // La jefa envía la sede donde está (sesión); el backend la valida y
         // la usa. La bibliotecóloga nunca la envía: cae en su sede del JWT.
@@ -146,9 +210,12 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
           minute: '2-digit',
         }),
         serviceType: categoriaSeleccionada?.nombre ?? '',
-        userType: cantidadSecundaria
-          ? `${cantidadSecundaria} personas atendidas`
-          : 'Atención directa',
+        userType:
+          metrica === 'triple'
+            ? `${cantidadSecundaria || 0} personas · ${tiempo}`
+            : metrica === 'doble'
+              ? `${cantidadSecundaria || 0} personas atendidas`
+              : 'Atención directa',
         count: Math.max(1, count),
         campus: session.campus,
         registeredBy: session.name,
@@ -163,6 +230,8 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
       setNotes('');
       setCount(1);
       setCantidadSecundaria('');
+      setTiempo('');
+      setSubcategoriaId(null);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al guardar.';
       setErrorMsg(message || 'No se pudo guardar el registro.');
@@ -264,6 +333,8 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                       onClick={() => {
                         setModuloId(mod.id);
                         setCategoriaId(null);
+                        setSubcategoriaId(null);
+                        setTiempo('');
                       }}
                       className={`px-4 py-2 rounded-lg text-xs font-medium border transition-colors ${
                         moduloId === mod.id
@@ -287,32 +358,83 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                 <p className="text-xs text-[#6B6A64] italic px-1 py-3 bg-[#F7F6F4] rounded-lg">
                   Seleccioná primero un módulo para ver sus categorías.
                 </p>
-              ) : categoriasDelModulo.length === 0 ? (
+              ) : categoriasRaizDelModulo.length === 0 ? (
                 <p className="text-xs text-[#6B6A64] italic px-1 py-3 bg-[#F7F6F4] rounded-lg">
                   Este módulo no tiene categorías activas.
                 </p>
               ) : (
+                <div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
+                    <AnimatePresence initial={false} mode="popLayout">
+                      {categoriasVisibles.map((cat) => (
+                        <motion.button
+                          type="button"
+                          key={cat.id}
+                          layout
+                          initial={entrada}
+                          animate={{ opacity: 1, scale: 1 }}
+                          exit={salida}
+                          transition={transicion}
+                          aria-pressed={categoriaId === cat.id}
+                          onClick={() => {
+                            // Tocar la categoría elegida la deselecciona y
+                            // vuelve a mostrar el resto.
+                            const esMisma = categoriaId === cat.id;
+                            setCategoriaId(esMisma ? null : cat.id);
+                            setSubcategoriaId(null);
+                            setTiempo('');
+                          }}
+                          className={`p-3 rounded-lg text-xs text-left font-medium border transition-colors ${
+                            categoriaId === cat.id
+                              ? 'border-[#990000] bg-[#990000]/10 text-[#990000] font-semibold shadow-xs'
+                              : 'border-[#E3E1DA] bg-white text-[#262624] hover:border-[#990000]'
+                          }`}
+                        >
+                          <span className="block font-semibold">{cat.nombre}</span>
+                          <span className="text-[10px] text-[#6B6A64] block mt-0.5">
+                            {etiquetaMetrica(cat.tipoMetrica)}
+                          </span>
+                        </motion.button>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                  {categoriaId != null && (
+                    <p className="text-[10px] text-[#6B6A64] mt-2">
+                      Tocá la categoría de nuevo para ver las demás.
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Subcategory Selection (only when the category has children) */}
+            {subcategoriasDeCategoria.length > 0 && (
+              <motion.div
+                initial={entrada}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={transicion}
+              >
+                <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-2">
+                  3. Subcategoría de Servicio <span className="text-[#990000]">*</span>
+                </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-56 overflow-y-auto pr-1">
-                  {categoriasDelModulo.map((cat) => (
+                  {subcategoriasDeCategoria.map((sub) => (
                     <button
                       type="button"
-                      key={cat.id}
-                      onClick={() => setCategoriaId(cat.id)}
+                      key={sub.id}
+                      onClick={() => setSubcategoriaId(sub.id)}
                       className={`p-3 rounded-lg text-xs text-left font-medium border transition-colors ${
-                        categoriaId === cat.id
+                        subcategoriaId === sub.id
                           ? 'border-[#990000] bg-[#990000]/10 text-[#990000] font-semibold'
                           : 'border-[#E3E1DA] bg-white text-[#262624] hover:border-[#990000]'
                       }`}
                     >
-                      <span className="block font-semibold">{cat.nombre}</span>
-                      <span className="text-[10px] text-[#6B6A64] block mt-0.5">
-                        {cat.tipoMetrica === 'doble' ? 'Cantidad + Personas' : 'Cantidad'}
-                      </span>
+                      <span className="block font-semibold">{sub.nombre}</span>
                     </button>
                   ))}
                 </div>
-              )}
-            </div>
+              </motion.div>
+            )}
 
             {/* Count & Notes Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -330,7 +452,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                 />
               </div>
 
-              {categoriaSeleccionada?.tipoMetrica === 'doble' && (
+              {categoriaSeleccionada && categoriaSeleccionada.tipoMetrica !== 'simple' && (
                 <div>
                   <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
                     Personas Atendidas <span className="text-[#990000]">*</span>
@@ -346,7 +468,22 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                 </div>
               )}
 
-              <div className={categoriaSeleccionada?.tipoMetrica === 'doble' ? '' : 'sm:col-span-2'}>
+              {categoriaSeleccionada?.tipoMetrica === 'triple' && (
+                <div>
+                  <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
+                    Tiempo (hh:mm) <span className="text-[#990000]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={tiempo}
+                    onChange={(e) => setTiempo(e.target.value)}
+                    placeholder="Ej. 1:30"
+                    className="w-full px-3.5 py-2.5 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm font-mono"
+                  />
+                </div>
+              )}
+
+              <div className={categoriaSeleccionada?.tipoMetrica === 'simple' || !categoriaSeleccionada ? 'sm:col-span-2' : ''}>
                 <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
                   Observaciones (Opcional)
                 </label>

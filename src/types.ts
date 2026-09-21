@@ -27,6 +27,8 @@ export type SidebarTab = 'registro' | 'dashboard' | 'usuarios' | 'categorias' | 
 
 export type Rol = 'bibliotecologa' | 'jefa';
 
+export type NivelDesglose = 'categoria' | 'subcategoria';
+
 export interface UserSession {
   accessToken: string;
   email: string;
@@ -66,10 +68,13 @@ export interface CategoriaDto {
   id: number;
   moduloId: number;
   nombre: string;
-  tipoMetrica: 'simple' | 'doble';
+  tipoMetrica: 'simple' | 'doble' | 'triple';
   activo: boolean;
   creadoPor: string | null;
+  categoriaPadreId: number | null;
   modulo?: { id: number; nombre: string };
+  categoriaPadre?: { id: number; nombre: string } | null;
+  hijas?: CategoriaDto[];
 }
 
 export interface CicloDto {
@@ -88,6 +93,7 @@ export interface RegistroDto {
   cicloId: number;
   cantidad: number;
   cantidadSecundaria: number | null;
+  cantidadTerciaria: number | null;
   fechaHora: string;
   observaciones: string | null;
   categoria?: CategoriaDto;
@@ -106,17 +112,21 @@ export interface PaginatedRegistros {
 export interface KpisDto {
   totalAtenciones: number;
   totalPersonas: number;
+  totalTiempo: number;
 }
 
 export interface PorCategoriaDto {
   categoriaId: number;
   categoriaNombre: string;
+  categoriaPadreNombre: string;
   moduloNombre: string;
   total: number;
   totalPersonas: number;
+  totalTiempo: number;
 }
 
 export interface ComposicionDto {
+  categoriaId: number;
   nombre: string;
   valor: number;
 }
@@ -128,11 +138,14 @@ export interface ComparativoSedesDto {
 }
 
 export interface PorAnioDto {
+  categoriaId: number;
   categoriaNombre: string;
+  categoriaPadreNombre: string;
   moduloNombre: string;
   anio: number;
   total: number;
   totalPersonas: number;
+  totalTiempo: number;
 }
 
 // ===== Tipos para la UI (mapeados) =====
@@ -155,7 +168,7 @@ export interface CategoryItem {
   campus: CampusId | 'ambas';
   description: string;
   status: 'activo' | 'inactivo';
-  tipoMetrica: 'simple' | 'doble';
+  tipoMetrica: 'simple' | 'doble' | 'triple';
 }
 
 export interface AcademicCycle {

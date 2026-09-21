@@ -5,6 +5,7 @@ import {
   ComposicionDto,
   KpisDto,
   ModuloDto,
+  NivelDesglose,
   PaginatedRegistros,
   PorAnioDto,
   PorCategoriaDto,
@@ -135,7 +136,8 @@ export const api = {
   crearCategoria: (body: {
     moduloId: number;
     nombre: string;
-    tipoMetrica: 'simple' | 'doble';
+    tipoMetrica: 'simple' | 'doble' | 'triple';
+    categoriaPadreId?: number;
   }) =>
     request<CategoriaDto>('/categorias', {
       method: 'POST',
@@ -143,7 +145,13 @@ export const api = {
     }),
   actualizarCategoria: (
     id: number,
-    body: { nombre?: string; moduloId?: number; activo?: boolean },
+    body: {
+      nombre?: string;
+      moduloId?: number;
+      tipoMetrica?: 'simple' | 'doble' | 'triple';
+      activo?: boolean;
+      categoriaPadreId?: number | null;
+    },
   ) =>
     request<CategoriaDto>(`/categorias/${id}`, {
       method: 'PATCH',
@@ -178,6 +186,7 @@ export const api = {
     cicloId: number;
     cantidad: number;
     cantidadSecundaria?: number;
+    cantidadTerciaria?: number | string;
     observaciones?: string;
     sedeId?: number;
   }) =>
@@ -196,11 +205,20 @@ export const api = {
   },
 
   // ===== Dashboard =====
-  kpis: (cicloId?: number, sedeId?: number, moduloId?: number, signal?: AbortSignal) => {
+  kpis: (
+    cicloId?: number,
+    sedeId?: number,
+    moduloId?: number,
+    signal?: AbortSignal,
+    nivel?: NivelDesglose,
+    categoriaId?: number,
+  ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     if (moduloId) params.set('moduloId', String(moduloId));
+    if (nivel) params.set('nivel', nivel);
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<KpisDto>(`/dashboard/kpis${qs}`, { signal });
   },
@@ -209,11 +227,15 @@ export const api = {
     moduloId?: number,
     sedeId?: number,
     signal?: AbortSignal,
+    nivel?: NivelDesglose,
+    categoriaId?: number,
   ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
+    if (nivel) params.set('nivel', nivel);
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<PorCategoriaDto[]>(`/dashboard/por-categoria${qs}`, { signal });
   },
@@ -222,26 +244,46 @@ export const api = {
     moduloId?: number,
     sedeId?: number,
     signal?: AbortSignal,
+    nivel?: NivelDesglose,
+    categoriaId?: number,
   ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
+    if (nivel) params.set('nivel', nivel);
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<ComposicionDto[]>(`/dashboard/composicion${qs}`, { signal });
   },
-  comparativoSedes: (cicloId?: number, moduloId?: number) => {
+  comparativoSedes: (
+    cicloId?: number,
+    moduloId?: number,
+    nivel?: NivelDesglose,
+    categoriaId?: number,
+  ) => {
     const params = new URLSearchParams();
     if (cicloId) params.set('cicloId', String(cicloId));
     if (moduloId) params.set('moduloId', String(moduloId));
+    if (nivel) params.set('nivel', nivel);
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<ComparativoSedesDto[]>(`/dashboard/comparativo-sedes${qs}`);
   },
-  porAnio: (moduloId?: number, sedeId?: number, anio?: number, signal?: AbortSignal) => {
+  porAnio: (
+    moduloId?: number,
+    sedeId?: number,
+    anio?: number,
+    signal?: AbortSignal,
+    nivel?: NivelDesglose,
+    categoriaId?: number,
+  ) => {
     const params = new URLSearchParams();
     if (moduloId) params.set('moduloId', String(moduloId));
     if (sedeId) params.set('sedeId', String(sedeId));
     if (anio) params.set('anio', String(anio));
+    if (nivel) params.set('nivel', nivel);
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<PorAnioDto[]>(`/dashboard/por-anio${qs}`, { signal });
   },
