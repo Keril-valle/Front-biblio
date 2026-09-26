@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
@@ -27,6 +27,8 @@ const session: UserSession = {
 const MODULOS: ModuloDto[] = [
   { id: 1, nombre: 'Servicios' },
   { id: 2, nombre: 'Préstamos' },
+  { id: 8, nombre: 'POA' },
+  { id: 9, nombre: 'Desarrollo Personal' },
 ];
 
 const CATEGORIAS: CategoriaDto[] = [
@@ -75,6 +77,43 @@ const CATEGORIAS: CategoriaDto[] = [
     creadoPor: null,
     categoriaPadreId: null,
   },
+  {
+    id: 30,
+    moduloId: 8,
+    nombre: 'Metas',
+    tipoMetrica: 'metas',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: null,
+    permisoCreacion: 'jefa',
+  },
+  {
+    id: 31,
+    moduloId: 8,
+    nombre: 'Evidencia',
+    tipoMetrica: 'evidencia',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: null,
+  },
+  {
+    id: 40,
+    moduloId: 9,
+    nombre: 'Taller de APA',
+    tipoMetrica: 'asistentes',
+    activo: true,
+    creadoPor: null,
+    categoriaPadreId: null,
+    expositor: 'Ana Rodríguez',
+    institucion: 'Departamento de Biblioteca',
+    duracionMinutos: 90,
+    fechaEvento: '2026-03-15',
+  },
+];
+
+const USUARIOS_BASICOS = [
+  { id: 'u-1', nombreCompleto: 'Empleado Uno' },
+  { id: 'u-2', nombreCompleto: 'Empleado Dos' },
 ];
 
 const CICLOS: CicloDto[] = [
@@ -110,12 +149,17 @@ function mockCargaInicial() {
     fechaHora: '2026-03-01 10:00:00',
     observaciones: null,
   });
+  mockedApi.usuariosBasicos.mockResolvedValue(USUARIOS_BASICOS);
+  mockedApi.crearCategoria.mockResolvedValue({} as CategoriaDto);
+  mockedApi.actualizarCategoria.mockResolvedValue({} as CategoriaDto);
 }
 
 describe('QuickRegisterView (registro de atenciones)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCargaInicial();
+    // jsdom no implementa scrollIntoView (lo usa GestionCapacitaciones).
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it('muestra módulos y al elegir uno lista sus categorías', async () => {
@@ -405,5 +449,216 @@ describe('QuickRegisterView (registro de atenciones)', () => {
     render(<QuickRegisterView session={session} />);
 
     expect(await screen.findByText('12 personas · 1:30')).toBeInTheDocument();
+  });
+});
+
+describe('QuickRegisterView — POA', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCargaInicial();
+    // jsdom no implementa scrollIntoView (lo usa GestionCapacitaciones).
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  const guardar = () =>
+    screen.getByRole('button', { name: '+ Guardar Registro de Atención' });
+
+  // Las metas de POA son solo de la jefatura (`permiso_creacion: 'jefa'`).
+  const jefa: UserSession = {
+    ...session,
+    role: 'jefa',
+    email: 'jefa@una.cr',
+    name: 'Jefa',
+  };
+
+  it('la bibliotecóloga no ve Metas y sí puede cargar Evidencia', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('POA'));
+
+    expect(await screen.findByText('Evidencia')).toBeInTheDocument();
+    expect(screen.queryByText('Metas')).not.toBeInTheDocument();
+  });
+
+  it('Metas pide el texto de la meta y lo envía como cantidad 1', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={jefa} />);
+
+    await user.click(await screen.findByText('POA'));
+    await user.click(await screen.findByText('Metas'));
+
+    const meta = await screen.findByPlaceholderText('Ej. Semana del Libro');
+    // La categoría de metas no ofrece enlace de evidencia.
+    expect(screen.queryByPlaceholderText('Ej. https://una.cr/album')).toBeNull();
+
+    await user.click(guardar());
+    expect(await screen.findByText('Indique la meta del renglón.')).toBeInTheDocument();
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
+
+    await user.type(meta, 'Semana del Libro');
+    await user.click(guardar());
+
+    await waitFor(() => {
+      expect(mockedApi.crearRegistro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoriaId: 30,
+          meta: 'Semana del Libro',
+          cantidad: 1,
+        }),
+      );
+    });
+  });
+
+  it('Evidencia exige la meta y el enlace a la vez', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('POA'));
+    await user.click(await screen.findByText('Evidencia'));
+
+    const meta = await screen.findByPlaceholderText('Ej. Semana del Libro');
+    await screen.findByPlaceholderText('Ej. https://una.cr/album');
+
+    await user.click(guardar());
+    expect(await screen.findByText('Indique la meta del renglón.')).toBeInTheDocument();
+
+    await user.type(meta, 'Talleres de APA');
+    await user.click(guardar());
+    expect(await screen.findByText('Indique el enlace de la evidencia.')).toBeInTheDocument();
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
+
+    await user.type(
+      screen.getByPlaceholderText('Ej. https://una.cr/album'),
+      'https://una.cr/apa',
+    );
+    await user.click(guardar());
+
+    await waitFor(() => {
+      expect(mockedApi.crearRegistro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoriaId: 31,
+          meta: 'Talleres de APA',
+          evidencia: 'https://una.cr/apa',
+        }),
+      );
+    });
+  });
+});
+
+describe('QuickRegisterView — Desarrollo Personal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockCargaInicial();
+    // jsdom no implementa scrollIntoView (lo usa GestionCapacitaciones).
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  const jefa: UserSession = {
+    ...session,
+    role: 'jefa',
+    email: 'jefa@una.cr',
+    name: 'Jefa',
+  };
+  const guardar = () =>
+    screen.getByRole('button', { name: '+ Guardar Registro de Atención' });
+
+  it('el cuadrito "+ Agregar capacitación" solo lo ve la jefatura', async () => {
+    const user = userEvent.setup();
+    const { unmount } = render(<QuickRegisterView session={session} />);
+    await user.click(await screen.findByText('Desarrollo Personal'));
+    expect(screen.queryByTestId('agregar-capacitacion')).toBeNull();
+    unmount();
+
+    render(<QuickRegisterView session={jefa} />);
+    await user.click(await screen.findByText('Desarrollo Personal'));
+    expect(await screen.findByTestId('agregar-capacitacion')).toBeInTheDocument();
+    expect(
+      await screen.findByTestId('boton-agregar-capacitacion'),
+    ).toBeInTheDocument();
+  });
+
+  it('registra asistentes sin pedir cantidad ni ciclo', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={jefa} />);
+
+    await user.click(await screen.findByText('Desarrollo Personal'));
+    // La capacitación aparece en la grilla de categorías y, para la jefa,
+    // también en el listado de gestión: se elige la de la grilla (un botón).
+    await user.click(
+      await screen.findByRole('button', { name: /Taller de APA/ }),
+    );
+
+    expect(await screen.findByTestId('selector-asistentes')).toBeInTheDocument();
+    // Sin campo de cantidad ni de ciclo: los resuelve el backend.
+    expect(screen.queryByRole('spinbutton')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
+
+    await user.click(guardar());
+    expect(
+      await screen.findByText(/Seleccione al menos un empleado/),
+    ).toBeInTheDocument();
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
+
+    await user.click(await screen.findByLabelText(/Empleado Uno/));
+    await user.click(await screen.findByLabelText(/Empleado Dos/));
+    expect(screen.getByTestId('contador-asistentes').textContent).toContain('2');
+
+    await user.click(guardar());
+
+    await waitFor(() => {
+      expect(mockedApi.crearRegistro).toHaveBeenCalledWith(
+        expect.objectContaining({
+          categoriaId: 40,
+          cantidad: 1,
+          asistentes: ['u-1', 'u-2'],
+        }),
+      );
+    });
+
+    const cuerpo = mockedApi.crearRegistro.mock.calls[0][0];
+    expect('cicloId' in cuerpo).toBe(false);
+  });
+
+  it('la jefa crea una capacitación con los cinco datos', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={jefa} />);
+
+    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByTestId('boton-agregar-capacitacion'));
+
+    await user.click(screen.getByRole('button', { name: 'Crear capacitación' }));
+    expect(
+      await screen.findByText('Indique el nombre de la capacitación.'),
+    ).toBeInTheDocument();
+    expect(mockedApi.crearCategoria).not.toHaveBeenCalled();
+
+    await user.type(
+      screen.getByLabelText(/Nombre de la capacitación/),
+      'Taller de APA',
+    );
+    await user.type(screen.getByLabelText(/Expositor/), 'Ana Rodríguez');
+    await user.type(
+      screen.getByLabelText(/Institución o departamento/),
+      'Departamento de Biblioteca',
+    );
+    await user.type(screen.getByLabelText(/Duración/), '1:30');
+    fireEvent.change(screen.getByLabelText(/Fecha/), {
+      target: { value: '2026-03-15' },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Crear capacitación' }));
+
+    await waitFor(() => {
+      expect(mockedApi.crearCategoria).toHaveBeenCalledWith({
+        moduloId: 9,
+        nombre: 'Taller de APA',
+        expositor: 'Ana Rodríguez',
+        institucion: 'Departamento de Biblioteca',
+        duracionMinutos: 90,
+        fechaEvento: '2026-03-15',
+        tipoMetrica: 'asistentes',
+      });
+    });
   });
 });

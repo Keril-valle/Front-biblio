@@ -1,8 +1,8 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+﻿import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
-import type { CicloDto } from '../types';
+import type { CicloDto, ComposicionDto } from '../types';
 import { DashboardCharts } from './DashboardCharts';
 
 vi.mock('../api/client');
@@ -86,7 +86,13 @@ function mockCargaBase() {
     totalTiempo: 0,
   });
   mockedApi.composicion.mockResolvedValue([
-    { categoriaId: 5, nombre: 'Consultas en sala', valor: 42 },
+    {
+      categoriaId: 5,
+      nombre: 'Consultas en sala',
+      valor: 42,
+      totalPersonas: 0,
+      totalTiempo: 0,
+    },
   ]);
   mockedApi.porCategoria.mockImplementation((cicloId?: number) =>
     Promise.resolve([
@@ -103,6 +109,8 @@ function mockCargaBase() {
   );
   mockedApi.porAnio.mockResolvedValue([]);
   mockedApi.comparativoSedes.mockResolvedValue([]);
+  // Solo se pide con el módulo Desarrollo Personal; por defecto, vacío.
+  mockedApi.capacitaciones.mockResolvedValue([]);
 }
 
 describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
@@ -181,7 +189,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     ).toBeInTheDocument();
 
     const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos[4] as HTMLSelectElement, '2');
+    await user.selectOptions(combos[3] as HTMLSelectElement, '2');
 
     expect(
       await screen.findByText('Campus Liberia — Biblioteca Rose Marie Ruiz Bravo'),
@@ -214,6 +222,87 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
         expect.any(AbortSignal),
         'categoria',
         undefined,
+      );
+    });
+  });
+
+  it('muestra categorías principales y despliega sus modalidades al seleccionarla', async () => {
+    mockedApi.categorias.mockResolvedValue([
+      {
+        id: 5,
+        moduloId: 1,
+        nombre: 'Computadoras',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+        categoriaPadreId: null,
+        modulo: { id: 1, nombre: 'Servicios' },
+      },
+      {
+        id: 6,
+        moduloId: 1,
+        nombre: 'Préstamo en Campus / Devolución',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+        categoriaPadreId: 5,
+        modulo: { id: 1, nombre: 'Servicios' },
+      },
+    ]);
+    const user = userEvent.setup();
+    render(<DashboardCharts role="jefa" />);
+    await screen.findByText('Categoría del servicio');
+
+    const categoria = screen.getAllByRole('combobox')[2] as HTMLSelectElement;
+    expect(within(categoria).getByRole('option', { name: 'Computadoras' })).toBeInTheDocument();
+    expect(
+      within(categoria).queryByRole('option', { name: 'Préstamo en Campus / Devolución' }),
+    ).not.toBeInTheDocument();
+
+    await user.selectOptions(categoria, '5');
+
+    expect(await screen.findByText('Computadoras: detalle por modalidad')).toBeInTheDocument();
+    expect(screen.getByText('Desglose por Modalidad')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedApi.porCategoria).toHaveBeenCalledWith(
+        expect.any(Number),
+        undefined,
+        undefined,
+        expect.any(AbortSignal),
+        'subcategoria',
+        5,
+      );
+    });
+  });
+
+  it('conserva una categoría sin modalidades como un total único', async () => {
+    mockedApi.categorias.mockResolvedValue([
+      {
+        id: 7,
+        moduloId: 1,
+        nombre: 'Reservación de salas',
+        tipoMetrica: 'simple',
+        activo: true,
+        creadoPor: null,
+        categoriaPadreId: null,
+        modulo: { id: 1, nombre: 'Servicios' },
+      },
+    ]);
+    const user = userEvent.setup();
+    render(<DashboardCharts role="jefa" />);
+    await screen.findByText('Categoría del servicio');
+
+    await user.selectOptions(screen.getAllByRole('combobox')[2] as HTMLSelectElement, '7');
+
+    expect(await screen.findByText('Reservación de salas: atención registrada')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(mockedApi.porCategoria).toHaveBeenCalledWith(
+        expect.any(Number),
+        undefined,
+        undefined,
+        expect.any(AbortSignal),
+        'subcategoria',
+        7,
       );
     });
   });
@@ -296,7 +385,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
 
     // Al filtrar un solo campus el botón desaparece y cae a I/II Ciclo.
     const combos = screen.getAllByRole('combobox');
-    await user.selectOptions(combos[4] as HTMLSelectElement, '2');
+    await user.selectOptions(combos[3] as HTMLSelectElement, '2');
 
     await waitFor(() => {
       expect(screen.queryByRole('button', { name: 'Campus' })).not.toBeInTheDocument();
@@ -312,7 +401,13 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
   it('en modo anual el Total del Módulo muestra el acumulado de todos los años', async () => {
     const user = userEvent.setup();
     mockedApi.composicion.mockResolvedValue([
-      { categoriaId: 5, nombre: 'Consultas en sala', valor: 7 },
+      {
+        categoriaId: 5,
+        nombre: 'Consultas en sala',
+        valor: 7,
+        totalPersonas: 0,
+        totalTiempo: 0,
+      },
     ]);
     mockedApi.porAnio.mockResolvedValue([
       {
@@ -373,7 +468,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     await screen.findByText('Atenciones del Ciclo');
 
     const combos = screen.getAllByRole('combobox');
-    expect(combos).toHaveLength(4); // ciclo + módulo + nivel + categoría, sin campus
+    expect(combos).toHaveLength(3); // ciclo + módulo + categoría, sin campus
     expect(screen.queryByRole('button', { name: 'Campus' })).not.toBeInTheDocument();
 
     const chart = await screen.findByTestId('recharts-BarChart');
@@ -405,11 +500,8 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     }>((res) => {
       resolvePrimero = res;
     });
-    let resolveCompPrimera: (v: { categoriaId: number; nombre: string; valor: number }[]) => void =
-      () => {};
-    const compPrimera = new Promise<
-      { categoriaId: number; nombre: string; valor: number }[]
-    >((res) => {
+    let resolveCompPrimera: (v: ComposicionDto[]) => void = () => {};
+    const compPrimera = new Promise<ComposicionDto[]>((res) => {
       resolveCompPrimera = res;
     });
 
@@ -423,7 +515,9 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     });
     mockedApi.composicion.mockImplementation((cicloId?: number) => {
       if (cicloId === 10) return compPrimera;
-      return Promise.resolve([{ categoriaId: 6, nombre: 'Categoría nueva', valor: 5 }]);
+      return Promise.resolve([
+        { categoriaId: 6, nombre: 'Categoría nueva', valor: 5, totalPersonas: 0, totalTiempo: 0 },
+      ]);
     });
 
     render(<DashboardCharts role="jefa" />);
@@ -439,7 +533,9 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
 
     // La respuesta obsoleta del ciclo 10 no debe sobrescribir la vista.
     resolvePrimero({ totalAtenciones: 1, totalPersonas: 1, totalTiempo: 0 });
-    resolveCompPrimera([{ categoriaId: 6, nombre: 'Categoría nueva', valor: 1 }]);
+    resolveCompPrimera([
+      { categoriaId: 6, nombre: 'Categoría nueva', valor: 1, totalPersonas: 0, totalTiempo: 0 },
+    ]);
     await waitFor(() => {
       expect(screen.queryByText('1')).not.toBeInTheDocument();
     });
@@ -459,11 +555,8 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     }>((res) => {
       resolveKpis = res;
     });
-    let resolveComp: (v: { categoriaId: number; nombre: string; valor: number }[]) => void =
-      () => {};
-    const compPendiente = new Promise<
-      { categoriaId: number; nombre: string; valor: number }[]
-    >((res) => {
+    let resolveComp: (v: ComposicionDto[]) => void = () => {};
+    const compPendiente = new Promise<ComposicionDto[]>((res) => {
       resolveComp = res;
     });
     mockedApi.kpis.mockImplementation(() => kpisPendiente);
@@ -475,7 +568,9 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     expect(screen.getByTestId('skeleton-composicion')).toBeInTheDocument();
 
     resolveKpis({ totalAtenciones: 7, totalPersonas: 2, totalTiempo: 0 });
-    resolveComp([{ categoriaId: 1, nombre: 'Servicios', valor: 7 }]);
+    resolveComp([
+      { categoriaId: 1, nombre: 'Servicios', valor: 7, totalPersonas: 0, totalTiempo: 0 },
+    ]);
 
     expect((await screen.findAllByText('7')).length).toBeGreaterThanOrEqual(1);
     expect(screen.queryByTestId('skeleton-kpis')).not.toBeInTheDocument();
@@ -511,5 +606,150 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     expect(await screen.findByTestId('recharts-BarChart')).toBeInTheDocument();
     expect(await screen.findByText('Desglose por Categoría')).toBeInTheDocument();
     expect((await screen.findAllByText('42')).length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('el desglose muestra las personas y el tiempo de cada categoría', async () => {
+    mockedApi.composicion.mockResolvedValue([
+      {
+        categoriaId: 81,
+        nombre: 'taller de ia',
+        valor: 1,
+        totalPersonas: 2,
+        totalTiempo: 120,
+      },
+    ]);
+
+    render(<DashboardCharts role="jefa" />);
+
+    expect(await screen.findByText('taller de ia')).toBeInTheDocument();
+    expect(screen.getByText('2 personas')).toBeInTheDocument();
+    expect(screen.getByText('2:00')).toBeInTheDocument();
+  });
+
+  it('con Desarrollo Personal muestra capacitaciones, asistentes y totales', async () => {
+    const MODULO_DP = 9;
+    mockedApi.modulos.mockResolvedValue([
+      { id: 1, nombre: 'Servicios' },
+      { id: MODULO_DP, nombre: 'Desarrollo Personal' },
+    ]);
+    mockedApi.capacitaciones.mockResolvedValue([
+      {
+        categoriaId: 81,
+        nombre: 'taller de ia',
+        eventos: 1,
+        personas: 2,
+        tiempo: 120,
+        asistentes: ['Ana Rojas', 'Luis Mora'],
+      },
+      {
+        categoriaId: 72,
+        nombre: 'algo',
+        eventos: 1,
+        personas: 1,
+        tiempo: 90,
+        asistentes: ['Ana Rojas'],
+      },
+    ]);
+
+    const user = userEvent.setup();
+    render(<DashboardCharts role="jefa" />);
+    await screen.findByText('Desglose por Categoría');
+
+    const combos = screen.getAllByRole('combobox');
+    await user.selectOptions(combos[1] as HTMLSelectElement, String(MODULO_DP));
+
+    const panel = await screen.findByTestId('panel-capacitaciones');
+    expect(within(panel).getByText('taller de ia')).toBeInTheDocument();
+    expect(within(panel).getAllByText('Ana Rojas')).toHaveLength(2);
+    expect(within(panel).getByText('Luis Mora')).toBeInTheDocument();
+    // Total destacado: 3 personas y 120 + 90 = 3:30 de formación.
+    expect(within(panel).getByText('3')).toBeInTheDocument();
+    expect(within(panel).getByText(/3:30 de formación/)).toBeInTheDocument();
+
+    expect(mockedApi.capacitaciones).toHaveBeenCalledWith(
+      CICLOS[0]?.id,
+      undefined,
+      MODULO_DP,
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it('en Desarrollo Personal las barras comparan personas y permiten ver eventos', async () => {
+    const moduloDp = 9;
+    mockedApi.modulos.mockResolvedValue([
+      { id: 1, nombre: 'Servicios' },
+      { id: moduloDp, nombre: 'Desarrollo Personal' },
+    ]);
+    const filaTaller = {
+      categoriaId: 91,
+      categoriaNombre: 'Taller de IA',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Desarrollo Personal',
+      total: 1,
+      totalPersonas: 2,
+      totalTiempo: 120,
+    };
+    mockedApi.porCategoria.mockResolvedValue([filaTaller]);
+    mockedApi.composicion.mockResolvedValue([
+      {
+        categoriaId: 91,
+        nombre: 'Taller de IA',
+        valor: 1,
+        totalPersonas: 2,
+        totalTiempo: 120,
+      },
+    ]);
+
+    const user = userEvent.setup();
+    render(<DashboardCharts role="jefa" />);
+    await screen.findByText('Desglose por Categoría');
+
+    const combos = screen.getAllByRole('combobox');
+    await user.selectOptions(combos[1] as HTMLSelectElement, String(moduloDp));
+
+    // Desarrollo Personal abre directamente la comparación de personas.
+    await screen.findByTestId('recharts-BarChart');
+    await waitFor(() => {
+      const chart = screen.getByTestId('recharts-BarChart');
+      expect(JSON.parse(chart.getAttribute('data-data') ?? '[]')).toEqual([
+        { categoria: 'Taller de IA', iCiclo: 2, iiCiclo: 2 },
+      ]);
+    });
+    expect(
+      screen.getByRole('button', { name: 'Personas capacitadas' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    expect(
+      screen.getByText(/Personas capacitadas — I Ciclo: 2 · II Ciclo: 2/),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('2 personas capacitadas en el ciclo seleccionado'),
+    ).toBeInTheDocument();
+
+    const selectorMedida = screen.getByRole('group', {
+      name: 'Medida de las barras de Desarrollo Personal',
+    });
+    await user.click(within(selectorMedida).getByRole('button', { name: 'Eventos' }));
+    expect(within(selectorMedida).getByRole('button', { name: 'Eventos' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await waitFor(() => {
+      const chart = screen.getByTestId('recharts-BarChart');
+      expect(JSON.parse(chart.getAttribute('data-data') ?? '[]')).toEqual([
+        { categoria: 'Taller de IA', iCiclo: 1, iiCiclo: 1 },
+      ]);
+    });
+    expect(screen.getByText(/I Ciclo: 1 · II Ciclo: 1/)).toBeInTheDocument();
+  });
+
+  it('no pide ni muestra el panel con otro módulo', async () => {
+    render(<DashboardCharts role="jefa" />);
+    await screen.findByText('Desglose por Categoría');
+
+    expect(
+      screen.queryByTestId('panel-capacitaciones'),
+    ).not.toBeInTheDocument();
+    expect(mockedApi.capacitaciones).not.toHaveBeenCalled();
   });
 });

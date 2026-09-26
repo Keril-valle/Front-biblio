@@ -64,17 +64,40 @@ export interface ModuloDto {
   categorias?: CategoriaDto[];
 }
 
+export type TipoMetrica =
+  | 'simple'
+  | 'doble'
+  | 'triple'
+  | 'asistentes'
+  | 'metas'
+  | 'evidencia';
+
 export interface CategoriaDto {
   id: number;
   moduloId: number;
   nombre: string;
-  tipoMetrica: 'simple' | 'doble' | 'triple';
+  tipoMetrica: TipoMetrica;
   activo: boolean;
   creadoPor: string | null;
   categoriaPadreId: number | null;
+  /**
+   * Metadatos de una capacitación (Desarrollo Personal). Opcionales porque
+   * solo aplican a ese módulo: en el resto llegan como `null` o no vienen.
+   */
+  expositor?: string | null;
+  institucion?: string | null;
+  duracionMinutos?: number | null;
+  fechaEvento?: string | null;
+  permisoCreacion?: 'ambas' | 'jefa';
   modulo?: { id: number; nombre: string };
   categoriaPadre?: { id: number; nombre: string } | null;
   hijas?: CategoriaDto[];
+}
+
+/** Listado mínimo para el selector de asistentes (solo id y nombre). */
+export interface UsuarioBasicoDto {
+  id: string;
+  nombreCompleto: string;
 }
 
 export interface CicloDto {
@@ -96,6 +119,9 @@ export interface RegistroDto {
   cantidadTerciaria: number | null;
   fechaHora: string;
   observaciones: string | null;
+  /** POA: texto libre de la meta y su enlace; nulos fuera de ese módulo. */
+  meta?: string | null;
+  evidencia?: string | null;
   categoria?: CategoriaDto;
   ciclo?: CicloDto;
   sede?: SedeDto;
@@ -129,6 +155,21 @@ export interface ComposicionDto {
   categoriaId: number;
   nombre: string;
   valor: number;
+  /** Personas de esa porción (en Desarrollo Personal, de esa capacitación). */
+  totalPersonas: number;
+  /** Tiempo acumulado en minutos. */
+  totalTiempo: number;
+}
+
+/** Una capacitación con su gente: alimenta el panel de Desarrollo Personal. */
+export interface CapacitacionDetalleDto {
+  categoriaId: number;
+  nombre: string;
+  eventos: number;
+  personas: number;
+  /** Duración acumulada en minutos. */
+  tiempo: number;
+  asistentes: string[];
 }
 
 export interface ComparativoSedesDto {
@@ -168,7 +209,7 @@ export interface CategoryItem {
   campus: CampusId | 'ambas';
   description: string;
   status: 'activo' | 'inactivo';
-  tipoMetrica: 'simple' | 'doble' | 'triple';
+  tipoMetrica: TipoMetrica;
 }
 
 export interface AcademicCycle {

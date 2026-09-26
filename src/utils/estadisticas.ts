@@ -14,8 +14,14 @@ export interface ResultadoComparativo {
   totales: Record<string, number>;
 }
 
+/** La serie de barras puede representar eventos o personas capacitadas. */
+export type MedidaComparativo = 'eventos' | 'personas';
+
 const CLAVES_CICLO = ['iCiclo', 'iiCiclo'] as const;
 const CLAVES_CAMPUS = ['nicoya', 'liberia'] as const;
+
+const valorDe = (row: PorCategoriaDto | PorAnioDto, medida: MedidaComparativo) =>
+  medida === 'personas' ? row.totalPersonas : row.total;
 
 /**
  * Suma cada serie (clave) a lo largo de todas las filas del comparativo.
@@ -46,6 +52,7 @@ function comparadorTotalDesc(claves: readonly string[]) {
  */
 export function agruparPorCiclo(
   rowsPorCiclo: { ciclo: CicloDto; rows: PorCategoriaDto[] }[],
+  medida: MedidaComparativo = 'eventos',
 ): ResultadoComparativo {
   const mapa = new Map<number, BarChartDataItem>();
   for (const { ciclo, rows } of rowsPorCiclo) {
@@ -56,7 +63,7 @@ export function agruparPorCiclo(
         iCiclo: 0,
         iiCiclo: 0,
       };
-      entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
+      entry[clave] = ((entry[clave] as number) ?? 0) + valorDe(row, medida);
       mapa.set(row.categoriaId, entry);
     }
   }
@@ -70,6 +77,7 @@ export function agruparPorCiclo(
 export function agruparPorCampus(
   rowsNicoya: PorCategoriaDto[],
   rowsLiberia: PorCategoriaDto[],
+  medida: MedidaComparativo = 'eventos',
 ): ResultadoComparativo {
   const mapa = new Map<number, BarChartDataItem>();
   const acumular = (rows: PorCategoriaDto[], clave: 'nicoya' | 'liberia') => {
@@ -79,7 +87,7 @@ export function agruparPorCampus(
         nicoya: 0,
         liberia: 0,
       };
-      entry[clave] = ((entry[clave] as number) ?? 0) + row.total;
+       entry[clave] = ((entry[clave] as number) ?? 0) + valorDe(row, medida);
       mapa.set(row.categoriaId, entry);
     }
   };
@@ -100,6 +108,7 @@ export function agruparPorCampus(
 export function agruparPorAnio(
   rows: PorAnioDto[],
   anios: number[],
+  medida: MedidaComparativo = 'eventos',
 ): ResultadoComparativo {
   const porCategoria = new Map<
     number,
@@ -112,9 +121,10 @@ export function agruparPorAnio(
       porAnio: {},
     };
     entrada.porAnio[String(row.anio)] =
-      ((entrada.porAnio[String(row.anio)] as number) ?? 0) + row.total;
+      ((entrada.porAnio[String(row.anio)] as number) ?? 0) + valorDe(row, medida);
     porCategoria.set(row.categoriaId, entrada);
-    totales[String(row.anio)] = (totales[String(row.anio)] ?? 0) + row.total;
+    totales[String(row.anio)] =
+      (totales[String(row.anio)] ?? 0) + valorDe(row, medida);
   }
   const claves = anios.map(String);
   const datos = Array.from(porCategoria.values())

@@ -1,4 +1,5 @@
 import {
+  CapacitacionDetalleDto,
   CategoriaDto,
   CicloDto,
   ComparativoSedesDto,
@@ -11,6 +12,8 @@ import {
   PorCategoriaDto,
   RegistroDto,
   SedeDto,
+  TipoMetrica,
+  UsuarioBasicoDto,
   UsuarioDto,
 } from '../types';
 
@@ -112,8 +115,15 @@ export const api = {
   sedes: () => request<SedeDto[]>('/sedes'),
   modulos: () => request<ModuloDto[]>('/modulos'),
 
-  // ===== Usuarios (solo jefa) =====
+  // ===== Usuarios =====
+  /** Solo jefa: catálogo completo con correo, rol y estado. */
   usuarios: () => request<UsuarioDto[]>('/usuarios'),
+  /**
+   * Accesible a ambos roles: solo id y nombre de los usuarios activos del
+   * campus de sesión. Es lo que alimenta el selector de asistentes.
+   */
+  usuariosBasicos: () =>
+    request<UsuarioBasicoDto[]>('/usuarios/basicos'),
   crearUsuario: (body: {
     nombreCompleto: string;
     email: string;
@@ -136,8 +146,13 @@ export const api = {
   crearCategoria: (body: {
     moduloId: number;
     nombre: string;
-    tipoMetrica: 'simple' | 'doble' | 'triple';
+    tipoMetrica: TipoMetrica;
     categoriaPadreId?: number;
+    expositor?: string;
+    institucion?: string;
+    duracionMinutos?: number;
+    fechaEvento?: string;
+    permisoCreacion?: 'ambas' | 'jefa';
   }) =>
     request<CategoriaDto>('/categorias', {
       method: 'POST',
@@ -148,9 +163,14 @@ export const api = {
     body: {
       nombre?: string;
       moduloId?: number;
-      tipoMetrica?: 'simple' | 'doble' | 'triple';
+      tipoMetrica?: TipoMetrica;
       activo?: boolean;
       categoriaPadreId?: number | null;
+      expositor?: string;
+      institucion?: string;
+      duracionMinutos?: number;
+      fechaEvento?: string;
+      permisoCreacion?: 'ambas' | 'jefa';
     },
   ) =>
     request<CategoriaDto>(`/categorias/${id}`, {
@@ -183,12 +203,16 @@ export const api = {
   // ===== Registros =====
   crearRegistro: (body: {
     categoriaId: number;
-    cicloId: number;
+    /** Omitido en asistencia a capacitaciones: lo deriva el backend. */
+    cicloId?: number;
     cantidad: number;
     cantidadSecundaria?: number;
     cantidadTerciaria?: number | string;
     observaciones?: string;
     sedeId?: number;
+    meta?: string;
+    evidencia?: string;
+    asistentes?: string[];
   }) =>
     request<RegistroDto>('/registros', {
       method: 'POST',
@@ -286,6 +310,30 @@ export const api = {
     if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<PorAnioDto[]>(`/dashboard/por-anio${qs}`, { signal });
+  },
+
+  /**
+   * Detalle de capacitaciones con las personas que las recibieron. El backend
+   * siempre desglosa por capacitación (nivel hoja), sin importar el nivel
+   * elegido en el dashboard.
+   */
+  capacitaciones: (
+    cicloId?: number,
+    sedeId?: number,
+    moduloId?: number,
+    signal?: AbortSignal,
+    categoriaId?: number,
+  ) => {
+    const params = new URLSearchParams();
+    if (cicloId) params.set('cicloId', String(cicloId));
+    if (sedeId) params.set('sedeId', String(sedeId));
+    if (moduloId) params.set('moduloId', String(moduloId));
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request<CapacitacionDetalleDto[]>(
+      `/dashboard/capacitaciones${qs}`,
+      { signal },
+    );
   },
 
   // ===== Reportes =====

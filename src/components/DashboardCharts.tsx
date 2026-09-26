@@ -12,7 +12,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import type { CicloDto, NivelDesglose } from '../types';
+import type { CicloDto, TipoMetrica } from '../types';
+import { MODULO_DESCARROLLO_PERSONAL } from '../data/modulos';
 import { formatearDuracion } from '../utils/duracion';
 import { useEstadisticasDashboard } from './useEstadisticasDashboard';
 
@@ -81,12 +82,22 @@ interface DashboardChartsProps {
   role: 'bibliotecologa' | 'jefa' | 'jefatura';
 }
 
-const etiquetaMetrica = (tipo: 'simple' | 'doble' | 'triple'): string =>
-  tipo === 'triple'
-    ? 'Cantidad + Personas + Tiempo'
-    : tipo === 'doble'
-      ? 'Cantidad + Personas'
-      : 'Cantidad';
+const etiquetaMetrica = (tipo: TipoMetrica): string => {
+  switch (tipo) {
+    case 'triple':
+      return 'Cantidad + Personas + Tiempo';
+    case 'doble':
+      return 'Cantidad + Personas';
+    case 'asistentes':
+      return 'Evento + Asistentes';
+    case 'metas':
+      return 'Meta (texto libre)';
+    case 'evidencia':
+      return 'Meta + Evidencia (enlace)';
+    default:
+      return 'Cantidad';
+  }
+};
 
 export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const isJefatura = role === 'jefa' || role === 'jefatura';
@@ -98,13 +109,13 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     cicloId,
     moduloId,
     categoriaId,
-    nivel,
+    medidaComparativo,
     sedeId,
     comparisonMode,
     setCicloId,
     setModuloId,
     setCategoriaId,
-    setNivel,
+    setMedidaComparativo,
     setSedeId,
     setComparisonMode,
     kpis,
@@ -114,11 +125,33 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     totalesComparativo,
     composition,
     estadoComposicion,
+    capacitaciones,
+    estadoCapacitaciones,
   } = useEstadisticasDashboard(role);
 
   const cycleName = (c: CicloDto) => `${c.numero === 1 ? 'I' : 'II'} Ciclo ${c.anio}`;
 
   const totalCompositionCount = composition.reduce((acc, curr) => acc + curr.valor, 0);
+  const totalCompositionPersonas = composition.reduce(
+    (acc, curr) => acc + curr.totalPersonas,
+    0,
+  );
+  const esDesarrolloPersonal = Number(moduloId) === MODULO_DESCARROLLO_PERSONAL;
+  const etiquetaMedida =
+    medidaComparativo === 'personas' ? 'personas capacitadas' : 'eventos';
+  // Totales del panel de capacitaciones (Desarrollo Personal).
+  const totalEventosCapacitacion = capacitaciones.reduce(
+    (acc, c) => acc + c.eventos,
+    0,
+  );
+  const totalPersonasCapacitadas = capacitaciones.reduce(
+    (acc, c) => acc + c.personas,
+    0,
+  );
+  const totalTiempoCapacitaciones = capacitaciones.reduce(
+    (acc, c) => acc + c.tiempo,
+    0,
+  );
   // En modo anual el panel "Total del Módulo" muestra el acumulado de todos
   // los años (ya filtrado por módulo y campus) en vez del ciclo seleccionado.
   const totalAnualModulo: number = Object.keys(totalesComparativo).reduce<number>(
@@ -126,7 +159,11 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
     0,
   );
   const totalModuloMostrado =
-    comparisonMode === 'anual' ? totalAnualModulo : totalCompositionCount;
+    comparisonMode === 'anual'
+      ? totalAnualModulo
+      : esDesarrolloPersonal && medidaComparativo === 'personas'
+        ? totalCompositionPersonas
+        : totalCompositionCount;
 
   // Altura dinámica: una fila por categoría con espacio para cada serie agrupada.
   const seriesCount =
@@ -161,28 +198,39 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       : (modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado');
   const cicloSeleccionado = ciclos.find((c) => c.id === cicloId);
   const categoriasFiltro = categorias.filter(
-    (c) => c.activo && (moduloId === '' || c.moduloId === moduloId),
+    (c) =>
+      c.activo &&
+      c.categoriaPadreId === null &&
+      (moduloId === '' || c.moduloId === moduloId),
   );
+  const categoriaSeleccionada = categoriasFiltro.find((c) => c.id === categoriaId);
+  const tieneSubcategorias =
+    categoriaId !== '' && categorias.some((c) => c.activo && c.categoriaPadreId === categoriaId);
   const nombreCampusSeleccionado =
     sedeId === 1 ? 'Campus Nicoya' : sedeId === 2 ? 'Campus Liberia' : 'Ambos campus';
   // Resumen de totales por serie para verificación visual inmediata.
   const resumenTotalesComparativo =
-    comparisonMode === 'ciclos'
+    `${esDesarrolloPersonal && medidaComparativo === 'personas' ? 'Personas capacitadas — ' : ''}${comparisonMode === 'ciclos'
       ? `I Ciclo: ${(totalesComparativo.iCiclo ?? 0).toLocaleString()} · II Ciclo: ${(totalesComparativo.iiCiclo ?? 0).toLocaleString()}`
       : comparisonMode === 'campus'
       ? `Nicoya: ${(totalesComparativo.nicoya ?? 0).toLocaleString()} · Liberia: ${(totalesComparativo.liberia ?? 0).toLocaleString()}`
-      : anios.map((a) => `${a}: ${(totalesComparativo[String(a)] ?? 0).toLocaleString()}`).join(' · ');
-  const tituloEstadistica =
-    comparisonMode === 'ciclos'
+      : anios.map((a) => `${a}: ${(totalesComparativo[String(a)] ?? 0).toLocaleString()}`).join(' · ')}`;
+  const tituloEstadistica = esDesarrolloPersonal
+    ? `${nombreModuloSeleccionado}: ${etiquetaMedida} por capacitación`
+    : categoriaSeleccionada
+      ? tieneSubcategorias
+        ? `${categoriaSeleccionada.nombre}: detalle por modalidad`
+        : `${categoriaSeleccionada.nombre}: atención registrada`
+    : comparisonMode === 'ciclos'
       ? `${nombreModuloSeleccionado}: I Ciclo y II Ciclo`
       : comparisonMode === 'campus'
-      ? `${nombreModuloSeleccionado}: Biblioteca Nayuribe y Biblioteca Rose Marie Ruiz Bravo`
-      : `${nombreModuloSeleccionado}: comparativa por año lectivo`;
+        ? `${nombreModuloSeleccionado}: Biblioteca Nayuribe y Biblioteca Rose Marie Ruiz Bravo`
+        : `${nombreModuloSeleccionado}: comparativa por año lectivo`;
 
   return (
-    <div className="space-y-6">
+    <div className="flex flex-col gap-6">
       {/* Filtros */}
-      <section className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs flex flex-wrap items-end gap-4">
+      <section className="order-1 bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs flex flex-wrap items-end gap-4">
         <div>
           <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
             Ciclo Lectivo
@@ -220,21 +268,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
 
         <div>
           <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
-            Nivel
-          </label>
-          <select
-            value={nivel}
-            onChange={(e) => setNivel(e.target.value as NivelDesglose)}
-            className="px-3 py-2 rounded-lg border border-[#E3E1DA] text-sm bg-white outline-none focus:border-[#990000]"
-          >
-            <option value="categoria">Categoría</option>
-            <option value="subcategoria">Subcategoría</option>
-          </select>
-        </div>
-
-        <div>
-          <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1.5">
-            Categoría
+            Categoría del servicio
           </label>
           <select
             value={categoriaId}
@@ -246,7 +280,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             <option value="">Todas las categorías</option>
             {categoriasFiltro.map((c) => (
               <option key={c.id} value={c.id}>
-                {c.categoriaPadreId != null ? `↳ ${c.nombre}` : c.nombre}
+                {c.nombre}
               </option>
             ))}
           </select>
@@ -276,19 +310,19 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       </section>
 
       {/* 1. KPI Cards Panel */}
-      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
+      <section className="order-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        <div className="bg-white px-5 py-4 rounded-2xl border border-[#E3E1DA] shadow-xs">
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Atenciones del Ciclo
           </span>
           {estadoKpis === 'cargando' ? (
-            <SkeletonCaja testId="skeleton-kpis" className="h-9 w-28 mt-2" />
+            <SkeletonCaja testId="skeleton-kpis" className="h-8 w-24 mt-1.5" />
           ) : estadoKpis === 'error' ? (
-            <p className="text-sm font-semibold text-[#990000] mt-2">
+            <p className="text-sm font-semibold text-[#990000] mt-1.5">
               No se pudieron cargar los datos.
             </p>
           ) : (
-            <p className="text-3xl font-bold text-[#262624] font-mono mt-2">
+            <p className="text-2xl font-bold text-[#262624] font-mono mt-1.5">
               {kpis.totalAtenciones.toLocaleString()}
             </p>
           )}
@@ -298,18 +332,18 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
+        <div className="bg-white px-5 py-4 rounded-2xl border border-[#E3E1DA] shadow-xs">
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Personas Atendidas
           </span>
           {estadoKpis === 'cargando' ? (
-            <SkeletonCaja className="h-9 w-28 mt-2" />
+            <SkeletonCaja className="h-8 w-24 mt-1.5" />
           ) : estadoKpis === 'error' ? (
-            <p className="text-sm font-semibold text-[#990000] mt-2">
+            <p className="text-sm font-semibold text-[#990000] mt-1.5">
               No se pudieron cargar los datos.
             </p>
           ) : (
-            <p className="text-3xl font-bold text-[#990000] font-mono mt-2">
+            <p className="text-2xl font-bold text-[#990000] font-mono mt-1.5">
               {kpis.totalPersonas.toLocaleString()}
             </p>
           )}
@@ -318,18 +352,18 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           </p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-[#E3E1DA] shadow-xs">
+        <div className="bg-white px-5 py-4 rounded-2xl border border-[#E3E1DA] shadow-xs">
           <span className="text-xs font-semibold text-[#585757] uppercase tracking-wider">
             Tiempo de Capacitación
           </span>
           {estadoKpis === 'cargando' ? (
-            <SkeletonCaja className="h-9 w-28 mt-2" />
+            <SkeletonCaja className="h-8 w-24 mt-1.5" />
           ) : estadoKpis === 'error' ? (
-            <p className="text-sm font-semibold text-[#990000] mt-2">
+            <p className="text-sm font-semibold text-[#990000] mt-1.5">
               No se pudieron cargar los datos.
             </p>
           ) : (
-            <p className="text-3xl font-bold text-[#034991] font-mono mt-2">
+            <p className="text-2xl font-bold text-[#034991] font-mono mt-1.5">
               {formatearDuracion(kpis.totalTiempo)}
             </p>
           )}
@@ -339,12 +373,12 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         </div>
       </section>
 
-      {/* Apartado: total del módulo cuando se selecciona uno solo */}
+      {/* Total del alcance activo: módulo o categoría seleccionada. */}
       {moduloId !== '' && (
-        <section className="bg-[#990000]/5 border border-[#990000]/20 rounded-2xl p-5 shadow-xs">
+        <section className="order-3 bg-[#990000]/5 border border-[#990000]/20 rounded-2xl px-5 py-4 shadow-xs">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-[#990000] text-white flex items-center justify-center shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-[#990000] text-white flex items-center justify-center shrink-0">
                 <svg
                   className="w-5 h-5"
                   fill="none"
@@ -361,29 +395,35 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
               </div>
               <div>
                 <span className="text-xs font-bold uppercase tracking-wider text-[#990000]">
-                  Total del Módulo
+                  {categoriaSeleccionada ? 'Total de la Categoría' : 'Total del Módulo'}
                 </span>
-                <h2 className="text-lg font-semibold text-[#262624] font-goudy leading-tight">
-                  {modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado'}
+                <h2 className="text-base font-semibold text-[#262624] font-goudy leading-tight">
+                  {categoriaSeleccionada?.nombre ?? modulos.find((m) => m.id === moduloId)?.nombre ?? 'Módulo seleccionado'}
                 </h2>
               </div>
             </div>
             <div className="text-right">
-              <p className="text-3xl font-bold text-[#990000] font-mono">
+              <p className="text-2xl font-bold text-[#990000] font-mono">
                 {totalModuloMostrado.toLocaleString()}
               </p>
               <p className="text-[11px] text-[#6B6A64]">
-                {comparisonMode === 'anual'
-                  ? 'atenciones del módulo en todos los años'
-                  : 'atenciones del módulo en el ciclo seleccionado'}
+                {esDesarrolloPersonal
+                  ? `${totalModuloMostrado.toLocaleString()} ${etiquetaMedida} ${comparisonMode === 'anual' ? 'en todos los años' : 'en el ciclo seleccionado'}`
+                  : comparisonMode === 'anual'
+                    ? categoriaSeleccionada
+                      ? 'atenciones de la categoría en todos los años'
+                      : 'atenciones del módulo en todos los años'
+                    : categoriaSeleccionada
+                      ? 'atenciones de la categoría en el ciclo seleccionado'
+                      : 'atenciones del módulo en el ciclo seleccionado'}
               </p>
             </div>
           </div>
         </section>
       )}
 
-      {/* 2 & 3. Grouped Bar Chart */}
-      <section className="bg-white p-6 rounded-2xl border border-[#E3E1DA] shadow-xs space-y-4">
+      {/* Comparativo: resultado principal inmediatamente después de los filtros. */}
+      <section className="order-2 bg-white p-6 rounded-2xl border border-[#E3E1DA] shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-[#E3E1DA]">
           <div>
             <span className="text-xs font-bold uppercase tracking-wider text-[#990000]">
@@ -392,13 +432,56 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             <h2 className="text-base font-semibold text-[#262624] font-goudy mt-0.5">
               {tituloEstadistica}
             </h2>
-            <p className="text-xs text-[#6B6A64] mt-0.5">
-              Comparación exacta de magnitudes discretas para evaluar demanda por servicio.
-            </p>
+              <p className="text-xs text-[#6B6A64] mt-0.5">
+                {esDesarrolloPersonal
+                  ? `Comparación por capacitación: ${etiquetaMedida}.`
+                  : categoriaSeleccionada
+                    ? tieneSubcategorias
+                      ? `Desglose de ${categoriaSeleccionada.nombre} por modalidad de servicio.`
+                      : `${categoriaSeleccionada.nombre} no tiene modalidades adicionales.`
+                  : 'Comparación exacta de magnitudes discretas para evaluar demanda por servicio.'}
+              </p>
             {barData.length > 0 && (
               <p className="text-xs font-semibold text-[#262624] mt-1 font-mono">
                 {resumenTotalesComparativo}
               </p>
+            )}
+            {esDesarrolloPersonal && (
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-[#6B6A64]">
+                  Barras
+                </span>
+                <div
+                  role="group"
+                  aria-label="Medida de las barras de Desarrollo Personal"
+                  className="inline-flex items-center rounded-lg border border-[#E3E1DA] bg-[#F7F6F4] p-0.5"
+                >
+                  <button
+                    type="button"
+                    aria-pressed={medidaComparativo === 'eventos'}
+                    onClick={() => setMedidaComparativo('eventos')}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#990000] ${
+                      medidaComparativo === 'eventos'
+                        ? 'bg-white text-[#990000] shadow-xs'
+                        : 'text-[#585757] hover:text-[#262624]'
+                    }`}
+                  >
+                    Eventos
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={medidaComparativo === 'personas'}
+                    onClick={() => setMedidaComparativo('personas')}
+                    className={`rounded-md px-2.5 py-1 text-[11px] font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#034991] ${
+                      medidaComparativo === 'personas'
+                        ? 'bg-white text-[#034991] shadow-xs'
+                        : 'text-[#585757] hover:text-[#262624]'
+                    }`}
+                  >
+                    Personas capacitadas
+                  </button>
+                </div>
+              </div>
             )}
           </div>
 
@@ -502,7 +585,14 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                       fontSize: '12px',
                       boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)',
                     }}
-                    formatter={(value: number) => [`${value} atenciones`, '']}
+                    formatter={(value: number) => [
+                      `${value} ${esDesarrolloPersonal
+                        ? medidaComparativo === 'personas'
+                          ? 'personas'
+                          : 'eventos'
+                        : 'atenciones'}`,
+                      '',
+                    ]}
                   />
                   <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '12px' }} />
 
@@ -560,7 +650,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
       </section>
 
       {/* 4. Donut Chart: Composición de Módulo */}
-      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <section className="order-5 grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 bg-white p-6 rounded-2xl border border-[#E3E1DA] shadow-xs space-y-4">
           <div className="flex items-center justify-between pb-3 border-b border-[#E3E1DA]">
             <div>
@@ -636,7 +726,9 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
 
             <div className="space-y-2">
               <span className="text-xs font-bold text-[#585757] uppercase tracking-wider block mb-2">
-                Desglose por Categoría
+                {categoriaSeleccionada && tieneSubcategorias
+                  ? 'Desglose por Modalidad'
+                  : 'Desglose por Categoría'}
               </span>
               {estadoComposicion === 'cargando' ? (
                 <div className="space-y-2" data-testid="skeleton-desglose">
@@ -670,6 +762,18 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                         </div>
                         <div className="flex items-center gap-2 font-mono shrink-0">
                           <span className="text-[#585757] font-semibold">{item.valor}</span>
+                          {/* Personas y tiempo de la porción: en Desarrollo
+                              Personal cada porción es una capacitación. */}
+                          {item.totalPersonas > 0 && (
+                            <span className="text-[11px] font-semibold text-[#034991] bg-[#034991]/10 rounded px-1.5 py-0.5">
+                              {item.totalPersonas} personas
+                            </span>
+                          )}
+                          {item.totalTiempo > 0 && (
+                            <span className="text-[11px] text-[#6B6A64]">
+                              {formatearDuracion(item.totalTiempo)}
+                            </span>
+                          )}
                           <span className="text-[11px] text-[#6B6A64]">({percentage}%)</span>
                         </div>
                       </div>
@@ -715,6 +819,115 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
           </div>
         </div>
       </section>
+
+      {/* 5. Capacitaciones del personal: en Desarrollo Personal la estadística
+          tiene que decir cuántas personas recibió cada capacitación. */}
+      {moduloId === MODULO_DESCARROLLO_PERSONAL && (
+        <section
+          data-testid="panel-capacitaciones"
+          className="order-6 overflow-hidden rounded-2xl border border-[#E3E1DA] border-t-2 border-t-[#034991] bg-white shadow-xs"
+        >
+          <div className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between sm:p-6">
+            <div className="flex items-start gap-3">
+              <span className="mt-0.5 inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#034991]/10 text-[#034991]">
+                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-1.13a4 4 0 10-4-4 4 4 0 004 4z" />
+                </svg>
+              </span>
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#034991]">
+                  Desarrollo Personal
+                </p>
+                <h2 className="mt-0.5 text-lg font-semibold leading-tight text-[#262624] font-goudy">
+                  Personas capacitadas por taller
+                </h2>
+                <p className="mt-1 text-xs text-[#6B6A64]">
+                  Asistencia en el ciclo, campus y filtros seleccionados.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-3 rounded-xl border border-[#034991]/15 bg-[#E6EDF4]/60 px-4 py-2.5 sm:min-w-52 sm:justify-end">
+              <div className="text-right">
+                <p className="text-[10px] font-bold uppercase tracking-wider text-[#034991]">
+                  Total de personas
+                </p>
+                <p className="mt-0.5 font-mono text-2xl font-bold leading-none tabular-nums text-[#034991]">
+                  {totalPersonasCapacitadas.toLocaleString()}
+                </p>
+                <p className="mt-1 text-[10px] text-[#585757]">
+                  {totalEventosCapacitacion.toLocaleString()} eventos
+                  {totalTiempoCapacitaciones > 0 && (
+                    <> · {formatearDuracion(totalTiempoCapacitaciones)} de formación</>
+                  )}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {estadoCapacitaciones === 'cargando' ? (
+            <div className="space-y-2 px-5 pb-5 sm:px-6 sm:pb-6" data-testid="skeleton-capacitaciones">
+              <SkeletonCaja className="h-8 w-full" />
+              <SkeletonCaja className="h-8 w-3/4" />
+            </div>
+          ) : estadoCapacitaciones === 'error' ? (
+            <p className="px-5 pb-5 text-xs text-[#990000] sm:px-6 sm:pb-6">
+              No se pudieron cargar las capacitaciones.
+            </p>
+          ) : capacitaciones.length === 0 ? (
+            <div className="mx-5 mb-5 rounded-xl border border-dashed border-[#E3E1DA] bg-[#F7F6F4]/70 px-4 py-5 text-center sm:mx-6 sm:mb-6">
+              <p className="text-sm font-medium text-[#262624]">Sin asistencia registrada</p>
+              <p className="mt-1 text-xs text-[#6B6A64]" data-testid="capacitaciones-vacio">
+                Todavía no hay capacitaciones en este período.
+              </p>
+            </div>
+          ) : (
+            <div className="overflow-x-auto border-t border-[#E3E1DA]">
+              <table className="w-full min-w-[680px] text-xs">
+                <thead>
+                  <tr className="border-b border-[#E3E1DA] bg-[#F7F6F4]/70 text-left text-[10px] uppercase tracking-[0.12em] text-[#6B6A64]">
+                    <th scope="col" className="px-5 py-3 font-bold sm:px-6">Capacitación</th>
+                    <th scope="col" className="px-3 py-3 text-right font-bold">Eventos</th>
+                    <th scope="col" className="px-3 py-3 text-right font-bold">Personas</th>
+                    <th scope="col" className="px-3 py-3 text-right font-bold">Tiempo</th>
+                    <th scope="col" className="px-5 py-3 font-bold sm:px-6">Asistentes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {capacitaciones.map((capacitacion) => (
+                    <tr
+                      key={capacitacion.categoriaId}
+                      className="border-b border-[#E3E1DA]/70 align-top transition-colors last:border-0 hover:bg-[#F7F6F4]/60"
+                    >
+                      <td className="px-5 py-3 font-semibold text-[#262624] sm:px-6">
+                        {capacitacion.nombre}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono tabular-nums text-[#585757]">
+                        {capacitacion.eventos}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono font-bold tabular-nums text-[#034991]">
+                        {capacitacion.personas}
+                      </td>
+                      <td className="px-3 py-3 text-right font-mono tabular-nums text-[#585757]">
+                        {capacitacion.tiempo > 0 ? formatearDuracion(capacitacion.tiempo) : '—'}
+                      </td>
+                      <td className="px-5 py-2.5 text-[#585757] sm:px-6">
+                        <div className="flex max-w-[28rem] flex-wrap gap-1.5">
+                          {capacitacion.asistentes.length > 0 ? capacitacion.asistentes.map((asistente) => (
+                            <span key={asistente} className="inline-flex rounded-full border border-[#E3E1DA] bg-white px-2 py-0.5 text-[10px] text-[#585757]">
+                              {asistente}
+                            </span>
+                          )) : <span className="text-[#6B6A64]">—</span>}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 };

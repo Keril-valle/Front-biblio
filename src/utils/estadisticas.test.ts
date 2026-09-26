@@ -109,6 +109,34 @@ describe('agruparPorCiclo', () => {
     expect(datos).toEqual([]);
     expect(totales).toEqual({ iCiclo: 0, iiCiclo: 0 });
   });
+
+  it('puede comparar personas capacitadas en vez de eventos', () => {
+    const capacitacion: PorCategoriaDto = {
+      categoriaId: 90,
+      categoriaNombre: 'Taller de IA',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Desarrollo Personal',
+      total: 1,
+      totalPersonas: 2,
+      totalTiempo: 120,
+    };
+
+    const { datos, totales } = agruparPorCiclo(
+      [
+        { ciclo: ciclo(10, 2026, 1), rows: [capacitacion] },
+        {
+          ciclo: ciclo(11, 2026, 2),
+          rows: [{ ...capacitacion, totalPersonas: 3 }],
+        },
+      ],
+      'personas',
+    );
+
+    expect(datos).toEqual([
+      { categoria: 'Taller de IA', iCiclo: 2, iiCiclo: 3 },
+    ]);
+    expect(totales).toEqual({ iCiclo: 2, iiCiclo: 3 });
+  });
 });
 
 describe('agruparPorCampus', () => {
@@ -123,6 +151,28 @@ describe('agruparPorCampus', () => {
       { categoria: 'Préstamos', nicoya: 4, liberia: 0 },
     ]);
     expect(totales).toEqual({ nicoya: 24, liberia: 8 });
+  });
+
+  it('compara personas capacitadas por campus', () => {
+    const capacitacion: PorCategoriaDto = {
+      categoriaId: 90,
+      categoriaNombre: 'Taller de IA',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Desarrollo Personal',
+      total: 1,
+      totalPersonas: 2,
+      totalTiempo: 120,
+    };
+    const { datos, totales } = agruparPorCampus(
+      [capacitacion],
+      [{ ...capacitacion, totalPersonas: 3 }],
+      'personas',
+    );
+
+    expect(datos).toEqual([
+      { categoria: 'Taller de IA', nicoya: 2, liberia: 3 },
+    ]);
+    expect(totales).toEqual({ nicoya: 2, liberia: 3 });
   });
 });
 
@@ -169,6 +219,23 @@ describe('agruparPorAnio', () => {
     );
 
     expect(datos.map((d) => d.categoria)).toEqual(['A', 'B']);
+  });
+
+  it('acumula personas capacitadas en el modo anual', () => {
+    const capacitacion: PorAnioDto = {
+      categoriaId: 90,
+      categoriaNombre: 'Taller de IA',
+      categoriaPadreNombre: '',
+      moduloNombre: 'Desarrollo Personal',
+      anio: 2026,
+      total: 1,
+      totalPersonas: 2,
+      totalTiempo: 120,
+    };
+    const { datos, totales } = agruparPorAnio([capacitacion], [2026], 'personas');
+
+    expect(datos).toEqual([{ categoria: 'Taller de IA', '2026': 2 }]);
+    expect(totales).toEqual({ '2026': 2 });
   });
 });
 
