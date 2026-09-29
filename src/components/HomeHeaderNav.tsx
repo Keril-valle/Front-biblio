@@ -17,9 +17,6 @@ export const HomeHeaderNav: React.FC = () => {
             <span className="truncate text-[11px] font-bold uppercase tracking-[0.16em] text-[#990000] sm:text-xs">
               Subsistema de Bibliotecas
             </span>
-            <span className="truncate text-[13px] text-[#6B6A64]">
-              Campus Regional Chorotega · Universidad Nacional
-            </span>
           </div>
         </div>
 

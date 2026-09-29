@@ -29,7 +29,6 @@ describe('HomeHeaderNav', () => {
   it('muestra la marca institucional sin duplicar títulos del hero', () => {
     render(<HomeHeaderNav />);
     expect(screen.getByText('Subsistema de Bibliotecas')).toBeInTheDocument();
-    expect(screen.getByText('Campus Regional Chorotega · Universidad Nacional')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Iniciar sesión/i })).toBeInTheDocument();
     expect(screen.queryByText('Sistema de Estadísticas de Bibliotecas')).not.toBeInTheDocument();
     // Logo oficial de la UNA en el navbar.
@@ -70,10 +69,10 @@ describe('HeroSection', () => {
     expect(screen.getByAltText(/Subsistema de Bibliotecas/i)).toBeInTheDocument();
   });
 
-  it('capitaliza Bibliotecas de la Región Chorotega', () => {
+  it('menciona la Biblioteca de la Sede Regional Chorotega', () => {
     render(<HeroSection />);
     expect(
-      screen.getByText(/Bibliotecas de\s+la Región Chorotega/),
+      screen.getByText(/Biblioteca de\s+la Sede Regional Chorotega/),
     ).toBeInTheDocument();
   });
 });

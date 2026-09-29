@@ -39,9 +39,9 @@ export const HeroSection: React.FC = () => {
           </h1>
 
           <p className="mt-7 max-w-xl text-[15px] leading-relaxed text-[#6B6A64]">
-            Centraliza el registro de atenciones cotidianas de las Bibliotecas de
-            la Región Chorotega y genera reportes automáticos por ciclo, sin
-            hojas de cálculo.
+            Centraliza el registro de atenciones cotidianas de la Biblioteca de
+            la Sede Regional Chorotega y genera reportes automáticos por ciclo,
+            sin hojas de cálculo.
           </p>
 
           <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -78,17 +78,9 @@ export const HeroSection: React.FC = () => {
               <SubsistemaLogo size="md" />
             </div>
 
-            <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-[#034991]">
-              Subsistema de Bibliotecas
-            </span>
             <p className="mt-1 text-xs text-[#6B6A64]">
               Universidad Nacional, Costa Rica
             </p>
-
-            <div className="mt-4 inline-flex items-center gap-1.5 rounded-full bg-[#F7F6F4] px-3 py-1 text-[11px] font-semibold text-[#262624]">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[#034991]" />
-              Campus Regional Chorotega
-            </div>
           </div>
         </aside>
       </div>

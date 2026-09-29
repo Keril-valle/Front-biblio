@@ -8,3 +8,18 @@ export function formatearDuracion(minutos: number): string {
   const min = total % 60;
   return `${horas}:${String(min).padStart(2, '0')}`;
 }
+
+/**
+ * `1:30` → 90, `90` → 90. Devuelve `NaN` si no es un tiempo válido, para que
+ * la validación de la UI pueda detectarlo antes de mandar el pedido.
+ */
+export function normalizarTiempoAMinutos(valor: string): number {
+  const limpio = valor.trim();
+  if (!limpio) return NaN;
+
+  const hhmm = /^(\d{1,3}):([0-5]\d)$/.exec(limpio);
+  if (hhmm) return Number(hhmm[1]) * 60 + Number(hhmm[2]);
+
+  if (/^\d+$/.test(limpio)) return Number(limpio);
+  return NaN;
+}

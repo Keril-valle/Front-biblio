@@ -23,7 +23,15 @@ export type ViewState = 'landing' | 'login' | 'dashboard';
 
 export type HeroStyleVariant = 'light-clean' | 'red-institutional' | 'split-accent';
 
-export type SidebarTab = 'registro' | 'dashboard' | 'usuarios' | 'categorias' | 'ciclos' | 'reportes';
+export type SidebarTab =
+  | 'registro'
+  | 'mis-estadisticas'
+  | 'dashboard'
+  | 'empleados'
+  | 'usuarios'
+  | 'categorias'
+  | 'ciclos'
+  | 'reportes';
 
 export type Rol = 'bibliotecologa' | 'jefa';
 
@@ -64,17 +72,40 @@ export interface ModuloDto {
   categorias?: CategoriaDto[];
 }
 
+export type TipoMetrica =
+  | 'simple'
+  | 'doble'
+  | 'triple'
+  | 'asistentes'
+  | 'metas'
+  | 'evidencia';
+
 export interface CategoriaDto {
   id: number;
   moduloId: number;
   nombre: string;
-  tipoMetrica: 'simple' | 'doble' | 'triple';
+  tipoMetrica: TipoMetrica;
   activo: boolean;
   creadoPor: string | null;
   categoriaPadreId: number | null;
+  /**
+   * Metadatos de una capacitación (Desarrollo Personal). Opcionales porque
+   * solo aplican a ese módulo: en el resto llegan como `null` o no vienen.
+   */
+  expositor?: string | null;
+  institucion?: string | null;
+  duracionMinutos?: number | null;
+  fechaEvento?: string | null;
+  permisoCreacion?: 'ambas' | 'jefa';
   modulo?: { id: number; nombre: string };
   categoriaPadre?: { id: number; nombre: string } | null;
   hijas?: CategoriaDto[];
+}
+
+/** Listado mínimo para el selector de asistentes (solo id y nombre). */
+export interface UsuarioBasicoDto {
+  id: string;
+  nombreCompleto: string;
 }
 
 export interface CicloDto {
@@ -96,6 +127,9 @@ export interface RegistroDto {
   cantidadTerciaria: number | null;
   fechaHora: string;
   observaciones: string | null;
+  /** POA: texto libre de la meta y su enlace; nulos fuera de ese módulo. */
+  meta?: string | null;
+  evidencia?: string | null;
   categoria?: CategoriaDto;
   ciclo?: CicloDto;
   sede?: SedeDto;
@@ -129,6 +163,67 @@ export interface ComposicionDto {
   categoriaId: number;
   nombre: string;
   valor: number;
+  /** Personas de esa porción (en Desarrollo Personal, de esa capacitación). */
+  totalPersonas: number;
+  /** Tiempo acumulado en minutos. */
+  totalTiempo: number;
+}
+
+/** Una capacitación con su gente: alimenta el panel de Desarrollo Personal. */
+export interface CapacitacionDetalleDto {
+  categoriaId: number;
+  nombre: string;
+  eventos: number;
+  personas: number;
+  /** Duración acumulada en minutos. */
+  tiempo: number;
+  asistentes: string[];
+}
+
+/** Fila del ranking de la sección Estadística por Empleado. */
+export interface PorEmpleadoDto {
+  usuarioId: string;
+  nombreCompleto: string;
+  activo: boolean;
+  atenciones: number;
+  personas: number;
+  /** Duración acumulada en minutos. */
+  tiempo: number;
+  registros: number;
+  /** Capacitaciones de Desarrollo Personal recibidas. */
+  eventos: number;
+}
+
+/** Totales agregados del desglose de una empleada. */
+export interface TotalEmpleadoDto {
+  total: number;
+  totalPersonas: number;
+  totalTiempo: number;
+}
+
+export interface SubtotalModuloEmpleadoDto extends TotalEmpleadoDto {
+  moduloNombre: string;
+}
+
+/** Fila del desglose de una empleada por categoría (nivel hoja). */
+export interface PorEmpleadoDesgloseFilaDto {
+  usuarioId: string;
+  nombreCompleto: string;
+  categoriaId: number;
+  categoriaNombre: string;
+  categoriaPadreNombre: string;
+  moduloNombre: string;
+  total: number;
+  totalPersonas: number;
+  totalTiempo: number;
+  /** 'atencion' para registros suyos; 'capacitacion' para asistencias. */
+  origen: 'atencion' | 'capacitacion';
+}
+
+export interface PorEmpleadoDesgloseDto {
+  filas: PorEmpleadoDesgloseFilaDto[];
+  subtotales: SubtotalModuloEmpleadoDto[];
+  totalGeneral: TotalEmpleadoDto;
 }
 
 export interface ComparativoSedesDto {
@@ -168,7 +263,7 @@ export interface CategoryItem {
   campus: CampusId | 'ambas';
   description: string;
   status: 'activo' | 'inactivo';
-  tipoMetrica: 'simple' | 'doble' | 'triple';
+  tipoMetrica: TipoMetrica;
 }
 
 export interface AcademicCycle {

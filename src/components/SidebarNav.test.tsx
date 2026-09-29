@@ -59,3 +59,32 @@ describe('SidebarNav acciones de sesión', () => {
     expect(screen.queryByRole('button', { name: 'Cerrar sesión' })).not.toBeInTheDocument();
   });
 });
+
+describe('SidebarNav estadística por empleado (solo jefatura)', () => {
+  it('la jefa ve la entrada Estadística por Empleado', () => {
+    renderNav({ ...baseSession, role: 'jefa' });
+
+    expect(
+      screen.getByRole('button', { name: /Estadística por Empleado/i }),
+    ).toBeInTheDocument();
+    // Las estadísticas generales también son de jefatura.
+    expect(screen.getByRole('button', { name: 'Estadísticas' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Mis estadísticas' }),
+    ).not.toBeInTheDocument();
+  });
+
+  it('la bibliotecóloga no ve la entrada Estadística por Empleado', () => {
+    renderNav(baseSession);
+
+    expect(
+      screen.queryByRole('button', { name: /Estadística por Empleado/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Estadísticas' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Mis estadísticas' }),
+    ).toBeInTheDocument();
+  });
+});

@@ -1,4 +1,5 @@
 import {
+  CapacitacionDetalleDto,
   CategoriaDto,
   CicloDto,
   ComparativoSedesDto,
@@ -9,8 +10,12 @@ import {
   PaginatedRegistros,
   PorAnioDto,
   PorCategoriaDto,
+  PorEmpleadoDesgloseDto,
+  PorEmpleadoDto,
   RegistroDto,
   SedeDto,
+  TipoMetrica,
+  UsuarioBasicoDto,
   UsuarioDto,
 } from '../types';
 
@@ -98,6 +103,17 @@ async function request<T>(
   return undefined as T;
 }
 
+/** Filtros compartidos de la estadística por empleado. */
+export interface FiltrosEstadisticaEmpleado {
+  cicloId?: number;
+  anio?: number;
+  moduloId?: number;
+  categoriaId?: number;
+  sedeId?: number;
+  desde?: string;
+  hasta?: string;
+}
+
 export const api = {
   // ===== Auth =====
   login: (email: string, password: string) =>
@@ -112,8 +128,20 @@ export const api = {
   sedes: () => request<SedeDto[]>('/sedes'),
   modulos: () => request<ModuloDto[]>('/modulos'),
 
-  // ===== Usuarios (solo jefa) =====
+  // ===== Usuarios =====
+  /** Solo jefa: catálogo completo con correo, rol y estado. */
   usuarios: () => request<UsuarioDto[]>('/usuarios'),
+  /**
+   * Accesible a ambos roles: solo id y nombre de los usuarios activos del
+   * campus. Es lo que alimenta el selector de asistentes.
+   *
+   * El filtro `sedeId` lo manda solo la jefa (el campus de su sesión); la
+   * bibliotecóloga no lo envía y el backend igual usa la sede de su JWT.
+   */
+  usuariosBasicos: (sedeId?: number) =>
+    request<UsuarioBasicoDto[]>(
+      `/usuarios/basicos${sedeId ? `?sedeId=${sedeId}` : ''}`,
+    ),
   crearUsuario: (body: {
     nombreCompleto: string;
     email: string;
@@ -127,6 +155,12 @@ export const api = {
     }),
   desactivarUsuario: (id: string) =>
     request<UsuarioDto>(`/usuarios/${id}/desactivar`, { method: 'PATCH' }),
+  /** Mover una cuenta a otro campus (solo jefa). */
+  actualizarUsuario: (id: string, body: { sedeId: number }) =>
+    request<UsuarioDto>(`/usuarios/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(body),
+    }),
 
   // ===== Categorías =====
   categorias: (moduloId?: number) =>
@@ -136,8 +170,13 @@ export const api = {
   crearCategoria: (body: {
     moduloId: number;
     nombre: string;
-    tipoMetrica: 'simple' | 'doble' | 'triple';
+    tipoMetrica: TipoMetrica;
     categoriaPadreId?: number;
+    expositor?: string;
+    institucion?: string;
+    duracionMinutos?: number;
+    fechaEvento?: string;
+    permisoCreacion?: 'ambas' | 'jefa';
   }) =>
     request<CategoriaDto>('/categorias', {
       method: 'POST',
@@ -148,9 +187,14 @@ export const api = {
     body: {
       nombre?: string;
       moduloId?: number;
-      tipoMetrica?: 'simple' | 'doble' | 'triple';
+      tipoMetrica?: TipoMetrica;
       activo?: boolean;
       categoriaPadreId?: number | null;
+      expositor?: string;
+      institucion?: string;
+      duracionMinutos?: number;
+      fechaEvento?: string;
+      permisoCreacion?: 'ambas' | 'jefa';
     },
   ) =>
     request<CategoriaDto>(`/categorias/${id}`, {
@@ -183,12 +227,16 @@ export const api = {
   // ===== Registros =====
   crearRegistro: (body: {
     categoriaId: number;
-    cicloId: number;
+    /** Omitido en asistencia a capacitaciones: lo deriva el backend. */
+    cicloId?: number;
     cantidad: number;
     cantidadSecundaria?: number;
     cantidadTerciaria?: number | string;
     observaciones?: string;
     sedeId?: number;
+    meta?: string;
+    evidencia?: string;
+    asistentes?: string[];
   }) =>
     request<RegistroDto>('/registros', {
       method: 'POST',
@@ -286,6 +334,81 @@ export const api = {
     if (categoriaId) params.set('categoriaId', String(categoriaId));
     const qs = params.toString() ? `?${params.toString()}` : '';
     return request<PorAnioDto[]>(`/dashboard/por-anio${qs}`, { signal });
+  },
+
+  /**
+   * Detalle de capacitaciones con las personas que las recibieron. El backend
+   * siempre desglosa por capacitación (nivel hoja), sin importar el nivel
+   * elegido en el dashboard.
+   */
+  capacitaciones: (
+    cicloId?: number,
+    sedeId?: number,
+    moduloId?: number,
+    signal?: AbortSignal,
+    categoriaId?: number,
+  ) => {
+    const params = new URLSearchParams();
+    if (cicloId) params.set('cicloId', String(cicloId));
+    if (sedeId) params.set('sedeId', String(sedeId));
+    if (moduloId) params.set('moduloId', String(moduloId));
+    if (categoriaId) params.set('categoriaId', String(categoriaId));
+    const qs = params.toString() ? `?${params.toString()}` : '';
+    return request<CapacitacionDetalleDto[]>(
+      `/dashboard/capacitaciones${qs}`,
+      { signal },
+    );
+  },
+
+  /**
+   * Filtros compartidos de la estadística por empleado: período (ciclo o
+   * año), catálogo, campus y rango libre de fechas.
+   */
+  paramsEstadisticaEmpleado: (filtros: FiltrosEstadisticaEmpleado): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (filtros.cicloId) params.set('cicloId', String(filtros.cicloId));
+    if (filtros.anio) params.set('anio', String(filtros.anio));
+    if (filtros.moduloId) params.set('moduloId', String(filtros.moduloId));
+    if (filtros.categoriaId)
+      params.set('categoriaId', String(filtros.categoriaId));
+    if (filtros.sedeId) params.set('sedeId', String(filtros.sedeId));
+    if (filtros.desde) params.set('desde', filtros.desde);
+    if (filtros.hasta) params.set('hasta', filtros.hasta);
+    return params;
+  },
+
+  /** Ranking de las bibliotecólogas del campus (solo jefatura). */
+  porEmpleado: (filtros: FiltrosEstadisticaEmpleado, signal?: AbortSignal) => {
+    const qs = api.paramsEstadisticaEmpleado(filtros);
+    return request<PorEmpleadoDto[]>(
+      `/dashboard/por-empleado${qs.toString() ? `?${qs}` : ''}`,
+      { signal },
+    );
+  },
+
+  /** Desglose por categoría de una empleada (o de todas si no se indica). */
+  porEmpleadoDesglose: (
+    filtros: FiltrosEstadisticaEmpleado & { usuarioId?: string },
+    signal?: AbortSignal,
+  ) => {
+    const qs = api.paramsEstadisticaEmpleado(filtros);
+    if (filtros.usuarioId) qs.set('usuarioId', filtros.usuarioId);
+    return request<PorEmpleadoDesgloseDto>(
+      `/dashboard/por-empleado-desglose${qs.toString() ? `?${qs}` : ''}`,
+      { signal },
+    );
+  },
+
+  /** Estadísticas privadas de la bibliotecóloga autenticada. */
+  misEstadisticas: (
+    filtros: Omit<FiltrosEstadisticaEmpleado, 'sedeId'>,
+    signal?: AbortSignal,
+  ) => {
+    const qs = api.paramsEstadisticaEmpleado(filtros);
+    return request<PorEmpleadoDesgloseDto>(
+      `/dashboard/mis-estadisticas${qs.toString() ? `?${qs}` : ''}`,
+      { signal },
+    );
   },
 
   // ===== Reportes =====

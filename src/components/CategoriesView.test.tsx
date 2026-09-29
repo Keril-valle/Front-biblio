@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { api } from '../api/client';
@@ -327,5 +327,112 @@ describe('CategoriesView', () => {
         categoriaPadreId: null,
       }),
     );
+  });
+});
+
+describe('CategoriesView — métricas de POA y Desarrollo Personal', () => {
+  // Los <label> de este formulario son hermanos de sus controles (no hay
+  // `for`/`id`), así que se localizan por la opción que ofrecen o por el
+  // placeholder del campo.
+  const selectConOpcion = (valor: string): HTMLSelectElement =>
+    screen
+      .getAllByRole('combobox')
+      .find(
+        (select): select is HTMLSelectElement =>
+          Array.from((select as HTMLSelectElement).options).some(
+            (opcion) => opcion.value === valor,
+          ),
+      ) as HTMLSelectElement;
+
+  it('ofrece las métricas nuevas en el selector de tipo', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    const selectTipo = selectConOpcion('asistentes');
+    const valores = Array.from(selectTipo.options).map((o) => o.value);
+
+    expect(valores).toEqual(
+      expect.arrayContaining([
+        'simple',
+        'doble',
+        'triple',
+        'metas',
+        'evidencia',
+        'asistentes',
+      ]),
+    );
+  });
+
+  it('al elegir asistentes pide los cinco datos de la capacitación', async () => {
+    render(<CategoriesView session={session} />);
+    await screen.findByText('Consultas en sala');
+
+    await userEvent.type(
+      screen.getByPlaceholderText('Ej. Búsqueda Interbibliotecaria'),
+      'Taller de APA',
+    );
+    expect(
+      screen.getByPlaceholderText('Ej. Búsqueda Interbibliotecaria'),
+    ).toHaveValue('Taller de APA');
+
+    const selectModulo = screen
+      .getAllByRole('combobox')
+      .find((select) =>
+        Array.from((select as HTMLSelectElement).options).some((opcion) =>
+          opcion.textContent?.includes('Seleccionar módulo'),
+        ),
+      ) as HTMLSelectElement | undefined;
+    expect(selectModulo).toBeDefined();
+    await userEvent.selectOptions(selectModulo!, '1');
+    expect(selectModulo).toHaveValue('1');
+
+    // Los metadatos no existen hasta que la métrica es `asistentes`.
+    expect(
+      screen.queryByPlaceholderText('Ej. Ana Rodríguez'),
+    ).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(selectConOpcion('asistentes'), 'asistentes');
+    expect(
+      await screen.findByPlaceholderText('Ej. Ana Rodríguez'),
+    ).toBeInTheDocument();
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Guardar Categoría' }),
+    );
+
+    expect(
+      await screen.findByText(/Debe indicar el nombre de quien imparte/),
+    ).toBeInTheDocument();
+    expect(mockedApi.crearCategoria).not.toHaveBeenCalled();
+
+    await userEvent.type(
+      screen.getByPlaceholderText('Ej. Ana Rodríguez'),
+      'Ana Rodríguez',
+    );
+    await userEvent.type(
+      screen.getByPlaceholderText('Ej. Departamento de Biblioteca'),
+      'Departamento de Biblioteca',
+    );
+    await userEvent.type(screen.getByPlaceholderText('Ej. 1:30'), '1:30');
+    fireEvent.change(document.querySelector('input[type="date"]')!, {
+      target: { value: '2026-03-15' },
+    });
+
+    await userEvent.click(
+      screen.getByRole('button', { name: 'Guardar Categoría' }),
+    );
+
+    await waitFor(() => {
+      expect(mockedApi.crearCategoria).toHaveBeenCalledWith(
+        expect.objectContaining({
+          moduloId: 1,
+          nombre: 'Taller de APA',
+          tipoMetrica: 'asistentes',
+          expositor: 'Ana Rodríguez',
+          institucion: 'Departamento de Biblioteca',
+          duracionMinutos: 90,
+          fechaEvento: '2026-03-15',
+        }),
+      );
+    });
   });
 });

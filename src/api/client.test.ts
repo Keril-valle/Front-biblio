@@ -114,6 +114,17 @@ describe('api client (contratos con el backend)', () => {
     expect(url).toBe('/api/categorias?modulo_id=4');
   });
 
+  it('capacitaciones arma el alcance del panel', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await api.capacitaciones(5, 2, 9, undefined, 81);
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      '/api/dashboard/capacitaciones?cicloId=5&sedeId=2&moduloId=9&categoriaId=81',
+    );
+  });
+
   it('propaga el 401 con statusCode para tratar la sesión como expirada', async () => {
     fetchMock.mockResolvedValue(
       jsonResponse({ message: 'No autorizado' }, 401),
@@ -167,5 +178,50 @@ describe('api client (contratos con el backend)', () => {
     );
     expect(nombre).toBe('reporte-x.xlsx');
     expect(contenido.size).toBeGreaterThan(0);
+  });
+
+  it('porEmpleado arma todos los filtros del rango libre de fechas', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await api.porEmpleado({
+      cicloId: 5,
+      anio: 2026,
+      moduloId: 9,
+      categoriaId: 81,
+      sedeId: 1,
+      desde: '2026-03-01',
+      hasta: '2026-07-31',
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      '/api/dashboard/por-empleado?cicloId=5&anio=2026&moduloId=9&categoriaId=81&sedeId=1&desde=2026-03-01&hasta=2026-07-31',
+    );
+  });
+
+  it('porEmpleado sin filtros no arma query string', async () => {
+    fetchMock.mockResolvedValue(jsonResponse([]));
+
+    await api.porEmpleado({ sedeId: 2 });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe('/api/dashboard/por-empleado?sedeId=2');
+  });
+
+  it('porEmpleadoDesglose agrega usuarioId al desglose individual', async () => {
+    fetchMock.mockResolvedValue(
+      jsonResponse({ filas: [], subtotales: [], totalGeneral: {} }),
+    );
+
+    await api.porEmpleadoDesglose({
+      sedeId: 1,
+      desde: '2026-01-01',
+      usuarioId: 'u-emp-1',
+    });
+
+    const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+    expect(url).toBe(
+      '/api/dashboard/por-empleado-desglose?sedeId=1&desde=2026-01-01&usuarioId=u-emp-1',
+    );
   });
 });

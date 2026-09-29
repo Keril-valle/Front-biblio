@@ -1,6 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { api } from '../api/client';
-import { CategoriaDto, ModuloDto, UserSession } from '../types';
+import { CategoriaDto, ModuloDto, TipoMetrica, UserSession } from '../types';
+import { normalizarTiempoAMinutos } from '../utils/duracion';
 import { Toast, type ToastItem } from './Toast';
 
 interface CategoriesViewProps {
@@ -21,7 +22,12 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
   const [newCatName, setNewCatName] = useState('');
   const [newCatModule, setNewCatModule] = useState<number | ''>('');
   const [newCatPadre, setNewCatPadre] = useState<number | ''>('');
-  const [newCatTipo, setNewCatTipo] = useState<'simple' | 'doble' | 'triple'>('simple');
+  const [newCatTipo, setNewCatTipo] = useState<TipoMetrica>('simple');
+  // Metadatos de una capacitación: solo se piden si la métrica es `asistentes`.
+  const [newCatExpositor, setNewCatExpositor] = useState('');
+  const [newCatInstitucion, setNewCatInstitucion] = useState('');
+  const [newCatDuracion, setNewCatDuracion] = useState('');
+  const [newCatFecha, setNewCatFecha] = useState('');
   const [loading, setLoading] = useState(true);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -105,12 +111,22 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
   const moduloName = (cat: CategoriaDto) =>
     cat.modulo?.nombre ?? `Módulo ${cat.moduloId}`;
 
-  const etiquetaMetrica = (tipo: CategoriaDto['tipoMetrica']) =>
-    tipo === 'triple'
-      ? 'Cantidad + Personas + Tiempo'
-      : tipo === 'doble'
-        ? 'Cantidad + Personas'
-        : 'Cantidad';
+  const etiquetaMetrica = (tipo: CategoriaDto['tipoMetrica']): string => {
+    switch (tipo) {
+      case 'triple':
+        return 'Cantidad + Personas + Tiempo';
+      case 'doble':
+        return 'Cantidad + Personas';
+      case 'asistentes':
+        return 'Evento + Asistentes';
+      case 'metas':
+        return 'Meta (texto libre)';
+      case 'evidencia':
+        return 'Meta + Evidencia (enlace)';
+      default:
+        return 'Cantidad';
+    }
+  };
 
   // Categorías raíz de un módulo (candidatas a categoría padre).
   const raicesDeModulo = (moduloId: number) =>
@@ -137,6 +153,14 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
     }
   };
 
+  /**
+   * Bloqueo síncrono de envío: `setState` no se aplica hasta el siguiente
+   * render, así que sin esto los clics seguidos crean la categoría varias
+   * veces. El estado solo se encarga de deshabilitar el botón visualmente.
+   */
+  const guardandoRef = useRef(false);
+  const [guardando, setGuardando] = useState(false);
+
   const handleAddCategory = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -147,6 +171,32 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
       return;
     }
 
+    // Una capacitación se crea con sus cinco datos: la fecha y la duración no
+    // se vuelven a pedir al registrar la asistencia.
+    if (newCatTipo === 'asistentes') {
+      if (!newCatExpositor.trim()) {
+        setErrorMsg('Debe indicar el nombre de quien imparte la capacitación.');
+        return;
+      }
+      if (!newCatInstitucion.trim()) {
+        setErrorMsg('Debe indicar la institución o departamento que la imparte.');
+        return;
+      }
+      if (!normalizarTiempoAMinutos(newCatDuracion)) {
+        setErrorMsg('Debe indicar la duración con formato horas:minutos (ej. 1:30).');
+        return;
+      }
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(newCatFecha)) {
+        setErrorMsg('Debe indicar la fecha de la capacitación.');
+        return;
+      }
+    }
+
+    // Bloqueo síncrono: dos clics seguidos entran antes del re-render.
+    if (guardandoRef.current) return;
+    guardandoRef.current = true;
+    setGuardando(true);
+
     try {
       await api.crearCategoria({
         moduloId: Number(newCatModule),
@@ -154,14 +204,29 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
         tipoMetrica: newCatTipo,
         categoriaPadreId:
           newCatPadre === '' ? undefined : Number(newCatPadre),
+        ...(newCatTipo === 'asistentes'
+          ? {
+              expositor: newCatExpositor.trim(),
+              institucion: newCatInstitucion.trim(),
+              duracionMinutos: normalizarTiempoAMinutos(newCatDuracion),
+              fechaEvento: newCatFecha,
+            }
+          : {}),
       });
       setSuccessMsg('✓ Categoría creada correctamente.');
       setNewCatName('');
       setNewCatPadre('');
+      setNewCatExpositor('');
+      setNewCatInstitucion('');
+      setNewCatDuracion('');
+      setNewCatFecha('');
       load();
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Error al crear.';
       setErrorMsg(message || 'No se pudo crear la categoría.');
+    } finally {
+      guardandoRef.current = false;
+      setGuardando(false);
     }
   };
 
@@ -573,22 +638,80 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
               </label>
               <select
                 value={newCatTipo}
-                onChange={(e) =>
-                  setNewCatTipo(e.target.value as 'simple' | 'doble' | 'triple')
-                }
+                onChange={(e) => setNewCatTipo(e.target.value as TipoMetrica)}
                 className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000] bg-white"
               >
                 <option value="simple">Cantidad (simple)</option>
                 <option value="doble">Cantidad + Personas (doble)</option>
                 <option value="triple">Cantidad + Personas + Tiempo (capacitación)</option>
+                <option value="asistentes">Evento + Asistentes (Desarrollo Personal)</option>
+                <option value="metas">Meta (texto libre) — POA</option>
+                <option value="evidencia">Meta + Evidencia (enlace) — POA</option>
               </select>
             </div>
 
+            {newCatTipo === 'asistentes' && (
+              <>
+                <div>
+                  <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
+                    Expositor <span className="text-[#990000]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Ana Rodríguez"
+                    value={newCatExpositor}
+                    onChange={(e) => setNewCatExpositor(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
+                    Institución o departamento <span className="text-[#990000]">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="Ej. Departamento de Biblioteca"
+                    value={newCatInstitucion}
+                    onChange={(e) => setNewCatInstitucion(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000]"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
+                      Duración (hh:mm) <span className="text-[#990000]">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Ej. 1:30"
+                      value={newCatDuracion}
+                      onChange={(e) => setNewCatDuracion(e.target.value)}
+                      className="w-full px-3 py-2 text-sm font-mono rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000]"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-1">
+                      Fecha <span className="text-[#990000]">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={newCatFecha}
+                      onChange={(e) => setNewCatFecha(e.target.value)}
+                      className="w-full px-3 py-2 text-sm rounded-lg border border-[#E3E1DA] outline-none focus:border-[#990000]"
+                    />
+                  </div>
+                </div>
+              </>
+            )}
+
             <button
               type="submit"
-              className="w-full py-2.5 bg-[#990000] hover:bg-[#CD1719] text-white text-xs font-semibold rounded-lg transition-colors"
+              disabled={guardando}
+              className="w-full py-2.5 bg-[#990000] hover:bg-[#CD1719] text-white text-xs font-semibold rounded-lg transition-colors disabled:opacity-60"
             >
-              Guardar Categoría
+              {guardando ? 'Guardando…' : 'Guardar Categoría'}
             </button>
           </form>
         </div>

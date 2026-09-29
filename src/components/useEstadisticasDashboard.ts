@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api } from '../api/client';
+import { MODULO_DESCARROLLO_PERSONAL } from '../data/modulos';
 import type {
+  CapacitacionDetalleDto,
   CategoriaDto,
   CicloDto,
   ComposicionDto,
@@ -13,6 +15,7 @@ import {
   agruparPorCampus,
   agruparPorCiclo,
   type BarChartDataItem,
+  type MedidaComparativo,
 } from '../utils/estadisticas';
 
 export type ModoComparacion = 'ciclos' | 'anual' | 'campus';
@@ -26,13 +29,13 @@ export interface UseEstadisticasDashboardResult {
   cicloId: number | '';
   moduloId: number | '';
   categoriaId: number | '';
-  nivel: NivelDesglose;
+  medidaComparativo: MedidaComparativo;
   sedeId: number | '';
   comparisonMode: ModoComparacion;
   setCicloId: (v: number | '') => void;
   setModuloId: (v: number | '') => void;
   setCategoriaId: (v: number | '') => void;
-  setNivel: (n: NivelDesglose) => void;
+  setMedidaComparativo: (m: MedidaComparativo) => void;
   setSedeId: (v: number | '') => void;
   setComparisonMode: (m: ModoComparacion) => void;
   kpis: KpisDto;
@@ -42,6 +45,9 @@ export interface UseEstadisticasDashboardResult {
   totalesComparativo: Record<string, number>;
   composition: ComposicionDto[];
   estadoComposicion: EstadoSeccion;
+  /** Detalle de capacitaciones (solo se pide con el módulo Desarrollo Personal). */
+  capacitaciones: CapacitacionDetalleDto[];
+  estadoCapacitaciones: EstadoSeccion;
 }
 
 const esAborto = (error: unknown): boolean =>
@@ -62,7 +68,12 @@ export function useEstadisticasDashboard(
   const [cicloId, setCicloId] = useState<number | ''>('');
   const [moduloId, setModuloId] = useState<number | ''>('');
   const [categoriaId, setCategoriaId] = useState<number | ''>('');
-  const [nivel, setNivel] = useState<NivelDesglose>('categoria');
+  // El resumen muestra categorías principales. Al filtrar una de ellas, el
+  // detalle cambia automáticamente a sus subcategorías (o a ella misma si no
+  // tiene subcategorías), sin exponer un segundo control al usuario.
+  const nivel: NivelDesglose = categoriaId === '' ? 'categoria' : 'subcategoria';
+  const [medidaComparativo, setMedidaComparativo] =
+    useState<MedidaComparativo>('eventos');
   const [sedeId, setSedeId] = useState<number | ''>('');
   const [comparisonMode, setComparisonMode] = useState<ModoComparacion>('ciclos');
 
@@ -77,6 +88,9 @@ export function useEstadisticasDashboard(
   const [totalesComparativo, setTotalesComparativo] = useState<Record<string, number>>({});
   const [composition, setComposition] = useState<ComposicionDto[]>([]);
   const [estadoComposicion, setEstadoComposicion] = useState<EstadoSeccion>('cargando');
+  const [capacitaciones, setCapacitaciones] = useState<CapacitacionDetalleDto[]>([]);
+  const [estadoCapacitaciones, setEstadoCapacitaciones] =
+    useState<EstadoSeccion>('vacio');
 
   // Identificadores de petición y controladores para cancelar lo obsoleto.
   const idPanel = useRef(0);
@@ -129,8 +143,16 @@ export function useEstadisticasDashboard(
     setCategoriaId('');
   }, [moduloId]);
 
+  // En Desarrollo Personal el comparativo abre en personas capacitadas, que
+  // es la pregunta principal del módulo. Los demás módulos conservan eventos.
+  useEffect(() => {
+    setMedidaComparativo(
+      Number(moduloId) === MODULO_DESCARROLLO_PERSONAL ? 'personas' : 'eventos',
+    );
+  }, [moduloId]);
+
   // Panel de KPIs + composición: una sola fase cancelable por combinación de
-  // filtros (ciclo/módulo/categoría/nivel/campus). Cada sección tiene su estado.
+  // filtros (ciclo/módulo/categoría/campus). Cada sección tiene su estado.
   useEffect(() => {
     if (cicloId === '') return;
 
@@ -146,6 +168,26 @@ export function useEstadisticasDashboard(
     const mid = moduloId === '' ? undefined : Number(moduloId);
     const catId = categoriaId === '' ? undefined : Number(categoriaId);
     const sid = sedeId === '' ? undefined : Number(sedeId);
+
+    // El detalle de capacitaciones solo aplica a Desarrollo Personal: en el
+    // resto de módulos se evita la petición.
+    if (mid === MODULO_DESCARROLLO_PERSONAL) {
+      setEstadoCapacitaciones('cargando');
+      api
+        .capacitaciones(cid, sid, mid, controller.signal, catId)
+        .then((filas) => {
+          if (id !== idPanel.current) return;
+          setCapacitaciones(filas);
+          setEstadoCapacitaciones(filas.length === 0 ? 'vacio' : 'listo');
+        })
+        .catch((error: unknown) => {
+          if (id !== idPanel.current || esAborto(error)) return;
+          setEstadoCapacitaciones('error');
+        });
+    } else {
+      setCapacitaciones([]);
+      setEstadoCapacitaciones('vacio');
+    }
 
     api
       .kpis(cid, sid, mid, controller.signal, nivel, catId)
@@ -219,7 +261,9 @@ export function useEstadisticasDashboard(
           rows: await api.porCategoria(c.id, mid, sid, controller.signal, nivel, catId),
         })),
       )
-        .then((rowsPorCiclo) => aplicar(agruparPorCiclo(rowsPorCiclo)))
+        .then((rowsPorCiclo) =>
+          aplicar(agruparPorCiclo(rowsPorCiclo, medidaComparativo)),
+        )
         .catch(fallar);
     } else if (modoEfectivo === 'campus') {
       Promise.all([
@@ -227,17 +271,17 @@ export function useEstadisticasDashboard(
         api.porCategoria(cid, mid, 2, controller.signal, nivel, catId),
       ])
         .then(([rowsNicoya, rowsLiberia]) =>
-          aplicar(agruparPorCampus(rowsNicoya, rowsLiberia)),
+          aplicar(agruparPorCampus(rowsNicoya, rowsLiberia, medidaComparativo)),
         )
         .catch(fallar);
     } else {
       api
         .porAnio(mid, sid, undefined, controller.signal, nivel, catId)
-        .then((rows) => aplicar(agruparPorAnio(rows, anios)))
+        .then((rows) => aplicar(agruparPorAnio(rows, anios, medidaComparativo)))
         .catch(fallar);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [comparisonMode, cicloId, moduloId, categoriaId, nivel, sedeId, ciclos]);
+  }, [comparisonMode, cicloId, moduloId, categoriaId, nivel, sedeId, ciclos, medidaComparativo]);
 
   // Al desmontar, se aborta cualquier petición pendiente.
   useEffect(() => {
@@ -255,13 +299,13 @@ export function useEstadisticasDashboard(
     cicloId,
     moduloId,
     categoriaId,
-    nivel,
+    medidaComparativo,
     sedeId,
     comparisonMode,
     setCicloId,
     setModuloId,
     setCategoriaId,
-    setNivel,
+    setMedidaComparativo,
     setSedeId,
     setComparisonMode,
     kpis,
@@ -271,5 +315,7 @@ export function useEstadisticasDashboard(
     totalesComparativo,
     composition,
     estadoComposicion,
+    capacitaciones,
+    estadoCapacitaciones,
   };
 }
