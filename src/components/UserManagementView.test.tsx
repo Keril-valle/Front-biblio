@@ -157,4 +157,31 @@ describe('UserManagementView — cambiar de campus', () => {
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(mockedApi.actualizarUsuario).not.toHaveBeenCalled();
   });
+
+  it('la contraseña temporal se puede mostrar y ocultar', async () => {
+    const user = userEvent.setup();
+    render(<UserManagementView session={session} />);
+
+    await screen.findByText('Biblio Nueva');
+    await user.click(screen.getByRole('button', { name: '+ Crear cuenta' }));
+
+    expect(await screen.findByLabelText(/Contraseña Temporal/)).toHaveAttribute(
+      'type',
+      'password',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Mostrar contraseña' }));
+    expect(screen.getByLabelText(/Contraseña Temporal/)).toHaveAttribute(
+      'type',
+      'text',
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Ocultar contraseña' }));
+    expect(screen.getByLabelText(/Contraseña Temporal/)).toHaveAttribute(
+      'type',
+      'password',
+    );
+    // Alternar la visibilidad no debe enviar el formulario.
+    expect(mockedApi.crearUsuario).not.toHaveBeenCalled();
+  });
 });

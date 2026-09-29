@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { api } from '../api/client';
 import { CampusId, UserAccount, UsuarioDto, UserSession } from '../types';
+import { BotonVerContrasena } from './BotonVerContrasena';
 
 interface UserManagementViewProps {
   session: UserSession;
@@ -35,6 +36,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
   const [role, setRole] = useState<'bibliotecologa' | 'jefatura'>('bibliotecologa');
   const [accessMethod, setAccessMethod] = useState<'password' | 'google'>('password');
   const [tempPassword, setTempPassword] = useState('');
+  const [verPassword, setVerPassword] = useState(false);
   const [formError, setFormError] = useState('');
 
   // Cuenta seleccionada para moverla de campus
@@ -73,6 +75,7 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
     setRole('bibliotecologa');
     setAccessMethod('password');
     setTempPassword('');
+    setVerPassword(false);
     setFormError('');
     setIsModalOpen(true);
   };
@@ -477,15 +480,22 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
                   <label htmlFor="campo-password" className="block text-[11px] font-semibold text-[#585757] uppercase tracking-wider mb-1">
                     Contraseña Temporal <span className="text-[#990000]">*</span>
                   </label>
-                  <input
-                    id="campo-password"
-                    type="password"
-                    required
-                    placeholder="••••••••"
-                    value={tempPassword}
-                    onChange={(e) => setTempPassword(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624]"
-                  />
+                  <div className="relative">
+                    <input
+                      id="campo-password"
+                      type={verPassword ? 'text' : 'password'}
+                      required
+                      placeholder="••••••••"
+                      value={tempPassword}
+                      onChange={(e) => setTempPassword(e.target.value)}
+                      className="w-full pl-3 pr-11 py-2 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624]"
+                    />
+                    <BotonVerContrasena
+                      visible={verPassword}
+                      onToggle={() => setVerPassword((actual) => !actual)}
+                      controlId="campo-password"
+                    />
+                  </div>
                   <p className="text-[11px] text-[#6B6A64] mt-1 italic">
                     La persona deberá cambiarla en su primer ingreso al sistema.
                   </p>
