@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { CAMPUSES } from '../data/campuses';
 import { api } from '../api/client';
 import { CampusId, UserSession } from '../types';
+import { BotonVerContrasena } from './BotonVerContrasena';
 import { LibraryLogo } from './LibraryLogos';
 
 interface LoginModalViewProps {
@@ -18,6 +19,7 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
   const campus = CAMPUSES[campusId];
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [verContrasena, setVerContrasena] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -121,11 +123,15 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
 
           {/* Email input */}
           <div>
-            <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-2">
+            <label
+              htmlFor="campo-email-login"
+              className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-2"
+            >
               Correo Institucional UNA <span className="text-[#990000]">*</span>
             </label>
             <div className="relative">
               <input
+                id="campo-email-login"
                 type="email"
                 required
                 placeholder="nombre.apellido@una.cr"
@@ -142,21 +148,30 @@ export const LoginModalView: React.FC<LoginModalViewProps> = ({
 
           {/* Password input */}
           <div>
-            <label className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-2">
+            <label
+              htmlFor="campo-password-login"
+              className="block text-xs font-semibold text-[#585757] uppercase tracking-wider mb-2"
+            >
               Contraseña <span className="text-[#990000]">*</span>
             </label>
             <div className="relative">
               <input
-                type="password"
+                id="campo-password-login"
+                type={verContrasena ? 'text' : 'password'}
                 required
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full pl-10 pr-3.5 py-2.5 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624] transition-colors"
+                className="w-full pl-10 pr-11 py-2.5 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624] transition-colors"
               />
               <svg className="w-5 h-5 text-[#A7A7A9] absolute left-3 top-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
               </svg>
+              <BotonVerContrasena
+                visible={verContrasena}
+                onToggle={() => setVerContrasena((actual) => !actual)}
+                controlId="campo-password-login"
+              />
             </div>
           </div>
 
