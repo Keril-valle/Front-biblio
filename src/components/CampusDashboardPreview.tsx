@@ -3,11 +3,13 @@ import { CAMPUSES } from '../data/campuses';
 import { SidebarTab, UserSession } from '../types';
 import { CategoriesView } from './CategoriesView';
 import { CyclesView } from './CyclesView';
+import { EstadisticasPersonalView } from './EstadisticasPersonalView';
 import { QuickRegisterView } from './QuickRegisterView';
 import { ReportsView } from './ReportsView';
 import { SidebarNav } from './SidebarNav';
 import { UserManagementView } from './UserManagementView';
 import { DashboardCharts } from './DashboardCharts';
+import { MisEstadisticasView } from './MisEstadisticasView';
 
 interface CampusDashboardPreviewProps {
   session: UserSession;
@@ -41,6 +43,11 @@ export const CampusDashboardPreview: React.FC<CampusDashboardPreviewProps> = ({
       {/* Tab: Registro (Quick Logger) */}
       {activeTab === 'registro' && <QuickRegisterView session={session} />}
 
+      {/* Tab: Mis estadísticas — vista privada de cada bibliotecóloga */}
+      {activeTab === 'mis-estadisticas' && !isJefatura && (
+        <MisEstadisticasView session={session} />
+      )}
+
       {/* Tab: Estadísticas (solo jefatura) */}
       {activeTab === 'dashboard' && isJefatura && (
         <div className="space-y-6">
@@ -61,6 +68,11 @@ export const CampusDashboardPreview: React.FC<CampusDashboardPreviewProps> = ({
           {/* Recharts Analytics & Visualizations Panel */}
           <DashboardCharts role={session.role} />
         </div>
+      )}
+
+      {/* Tab: Estadística por Empleado (solo jefatura) */}
+      {activeTab === 'empleados' && isJefatura && (
+        <EstadisticasPersonalView session={session} />
       )}
 
       {/* Tab: Usuarios (Administration) — solo jefatura */}

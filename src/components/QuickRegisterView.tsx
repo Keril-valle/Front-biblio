@@ -219,11 +219,14 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
   }, []);
 
   // El listado de posibles asistentes solo hace falta en Desarrollo Personal.
+  // La jefa lo pide para el campus de su sesión (el de la tarjeta por la que
+  // entró), el mismo que usa al registrar la asistencia; si cambia de campus
+  // la lista se recarga. La bibliotecóloga no manda sede: manda la de su JWT.
   useEffect(() => {
     if (moduloId !== MODULO_DESCARROLLO_PERSONAL) return;
     let mounted = true;
     api
-      .usuariosBasicos()
+      .usuariosBasicos(esJefatura ? session.campusId : undefined)
       .then((usuarios) => {
         if (mounted) setUsuariosBasicos(usuarios);
       })
@@ -233,7 +236,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
     return () => {
       mounted = false;
     };
-  }, [moduloId]);
+  }, [moduloId, esJefatura, session.campusId]);
 
   /** Recarga el catálogo después de crear o editar una capacitación. */
   const recargarCategorias = async () => {

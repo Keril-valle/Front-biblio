@@ -15,6 +15,7 @@ import {
 import type { CicloDto, TipoMetrica } from '../types';
 import { MODULO_DESCARROLLO_PERSONAL } from '../data/modulos';
 import { formatearDuracion } from '../utils/duracion';
+import { CategoriaTick } from './CategoriaTick';
 import { useEstadisticasDashboard } from './useEstadisticasDashboard';
 
 // Paleta categórica derivada solo de los colores oficiales UNA (rojo, azul
@@ -38,13 +39,6 @@ const BAR_CHART_SINGLE_MODULE_HEIGHT = 340;
 const BAR_ROW_BASE_HEIGHT = 24;
 const BAR_ROW_SERIES_HEIGHT = 22;
 const Y_AXIS_CATEGORY_WIDTH = 160;
-const MAX_CATEGORY_LABEL_LENGTH = 26;
-
-interface CategoriaTickProps {
-  x?: number;
-  y?: number;
-  payload?: { value?: string };
-}
 
 /** Esqueleto de carga con la misma forma que la sección que reemplaza. */
 const SkeletonCaja: React.FC<{ testId?: string; className?: string }> = ({
@@ -56,27 +50,6 @@ const SkeletonCaja: React.FC<{ testId?: string; className?: string }> = ({
     className={`animate-pulse bg-[#E9E7E1] rounded ${className}`}
   />
 );
-
-/**
- * Tick del eje Y para nombres de categoría: trunca con ellipsis los nombres
- * muy largos y expone el nombre completo vía tooltip nativo (<title>).
- */
-const CategoriaTick: React.FC<CategoriaTickProps> = ({ x = 0, y = 0, payload }) => {
-  const nombre = payload?.value ?? '';
-  const etiqueta =
-    nombre.length > MAX_CATEGORY_LABEL_LENGTH
-      ? `${nombre.slice(0, MAX_CATEGORY_LABEL_LENGTH - 1)}…`
-      : nombre;
-
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <text x={-8} y={0} dy={4} textAnchor="end" fontSize={11} fill="#585757">
-        {etiqueta}
-        <title>{nombre}</title>
-      </text>
-    </g>
-  );
-};
 
 interface DashboardChartsProps {
   role: 'bibliotecologa' | 'jefa' | 'jefatura';

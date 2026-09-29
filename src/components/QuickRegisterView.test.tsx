@@ -620,6 +620,36 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     expect('cicloId' in cuerpo).toBe(false);
   });
 
+  it('la jefa pide los asistentes del campus de su sesión (no el del JWT)', async () => {
+    const user = userEvent.setup();
+    // Entró a través de la tarjeta de Liberia, aunque su sede de origen es 1.
+    const jefaEnLiberia: UserSession = { ...jefa, campus: 'liberia', campusId: 2 };
+
+    const { rerender } = render(<QuickRegisterView session={jefaEnLiberia} />);
+    await user.click(await screen.findByText('Desarrollo Personal'));
+
+    await waitFor(() => {
+      expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(2);
+    });
+
+    // Cambia de campus con la pestaña abierta: la lista se recarga.
+    rerender(<QuickRegisterView session={jefa} />);
+    await waitFor(() => {
+      expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(1);
+    });
+  });
+
+  it('la bibliotecóloga no manda sede: manda la de su JWT', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+
+    await user.click(await screen.findByText('Desarrollo Personal'));
+
+    await waitFor(() => {
+      expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(undefined);
+    });
+  });
+
   it('la jefa crea una capacitación con los cinco datos', async () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);

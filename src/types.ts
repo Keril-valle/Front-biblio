@@ -23,7 +23,15 @@ export type ViewState = 'landing' | 'login' | 'dashboard';
 
 export type HeroStyleVariant = 'light-clean' | 'red-institutional' | 'split-accent';
 
-export type SidebarTab = 'registro' | 'dashboard' | 'usuarios' | 'categorias' | 'ciclos' | 'reportes';
+export type SidebarTab =
+  | 'registro'
+  | 'mis-estadisticas'
+  | 'dashboard'
+  | 'empleados'
+  | 'usuarios'
+  | 'categorias'
+  | 'ciclos'
+  | 'reportes';
 
 export type Rol = 'bibliotecologa' | 'jefa';
 
@@ -170,6 +178,52 @@ export interface CapacitacionDetalleDto {
   /** Duración acumulada en minutos. */
   tiempo: number;
   asistentes: string[];
+}
+
+/** Fila del ranking de la sección Estadística por Empleado. */
+export interface PorEmpleadoDto {
+  usuarioId: string;
+  nombreCompleto: string;
+  activo: boolean;
+  atenciones: number;
+  personas: number;
+  /** Duración acumulada en minutos. */
+  tiempo: number;
+  registros: number;
+  /** Capacitaciones de Desarrollo Personal recibidas. */
+  eventos: number;
+}
+
+/** Totales agregados del desglose de una empleada. */
+export interface TotalEmpleadoDto {
+  total: number;
+  totalPersonas: number;
+  totalTiempo: number;
+}
+
+export interface SubtotalModuloEmpleadoDto extends TotalEmpleadoDto {
+  moduloNombre: string;
+}
+
+/** Fila del desglose de una empleada por categoría (nivel hoja). */
+export interface PorEmpleadoDesgloseFilaDto {
+  usuarioId: string;
+  nombreCompleto: string;
+  categoriaId: number;
+  categoriaNombre: string;
+  categoriaPadreNombre: string;
+  moduloNombre: string;
+  total: number;
+  totalPersonas: number;
+  totalTiempo: number;
+  /** 'atencion' para registros suyos; 'capacitacion' para asistencias. */
+  origen: 'atencion' | 'capacitacion';
+}
+
+export interface PorEmpleadoDesgloseDto {
+  filas: PorEmpleadoDesgloseFilaDto[];
+  subtotales: SubtotalModuloEmpleadoDto[];
+  totalGeneral: TotalEmpleadoDto;
 }
 
 export interface ComparativoSedesDto {

@@ -37,6 +37,12 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
   const [tempPassword, setTempPassword] = useState('');
   const [formError, setFormError] = useState('');
 
+  // Cuenta seleccionada para moverla de campus
+  const [usuarioEnEdicion, setUsuarioEnEdicion] = useState<UserAccount | null>(null);
+  const [campusEdicion, setCampusEdicion] = useState<CampusId>('nicoya');
+  const [guardandoEdicion, setGuardandoEdicion] = useState(false);
+  const [edicionError, setEdicionError] = useState('');
+
   const load = () => {
     setLoading(true);
     api
@@ -69,6 +75,45 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
     setTempPassword('');
     setFormError('');
     setIsModalOpen(true);
+  };
+
+  const handleOpenEdicion = (usr: UserAccount) => {
+    setUsuarioEnEdicion(usr);
+    setCampusEdicion(usr.campus);
+    setEdicionError('');
+    setGuardandoEdicion(false);
+  };
+
+  /**
+   * Mover una cuenta a otro campus. La bibliotecóloga recién creada en el
+   * campus equivocado no aparece en el selector de asistentes de la otra
+   * sede, así que esta corrección evita recrear la cuenta.
+   */
+  const handleGuardarCampus = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!usuarioEnEdicion) return;
+
+    if (campusEdicion === usuarioEnEdicion.campus) {
+      setUsuarioEnEdicion(null);
+      return;
+    }
+
+    setGuardandoEdicion(true);
+    setEdicionError('');
+    try {
+      const actualizado = await api.actualizarUsuario(usuarioEnEdicion.id, {
+        sedeId: campusEdicion === 'nicoya' ? 1 : 2,
+      });
+      setUsers((prev) =>
+        prev.map((u) => (u.id === actualizado.id ? mapUsuario(actualizado) : u)),
+      );
+      setUsuarioEnEdicion(null);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Error al actualizar.';
+      setEdicionError(message || 'No se pudo cambiar el campus.');
+    } finally {
+      setGuardandoEdicion(false);
+    }
   };
 
   const handleCreateUser = async (e: React.FormEvent) => {
@@ -235,22 +280,31 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
                       </span>
                     </td>
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleToggleStatus(usr)}
-                        disabled={usr.id === session.userId && usr.status === 'activo'}
-                        title={
-                          usr.id === session.userId && usr.status === 'activo'
-                            ? 'No puede desactivar su propia cuenta'
-                            : undefined
-                        }
-                        className={`text-xs font-medium px-2.5 py-1 rounded border transition-colors ${
-                          usr.status === 'activo'
-                            ? 'border-[#E3E1DA] text-[#585757] hover:border-[#E17475] hover:text-[#A41214] bg-white'
-                            : 'border-[#034991]/30 text-[#034991] hover:bg-[#034991]/5 bg-white'
-                        } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E3E1DA] disabled:hover:text-[#585757]`}
-                      >
-                        {usr.status === 'activo' ? 'Desactivar' : 'Activar'}
-                      </button>
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleOpenEdicion(usr)}
+                          title="Cambiar la cuenta de campus"
+                          className="text-xs font-medium px-2.5 py-1 rounded border border-[#E3E1DA] text-[#585757] hover:border-[#034991] hover:text-[#034991] bg-white transition-colors"
+                        >
+                          Campus
+                        </button>
+                        <button
+                          onClick={() => handleToggleStatus(usr)}
+                          disabled={usr.id === session.userId && usr.status === 'activo'}
+                          title={
+                            usr.id === session.userId && usr.status === 'activo'
+                              ? 'No puede desactivar su propia cuenta'
+                              : undefined
+                          }
+                          className={`text-xs font-medium px-2.5 py-1 rounded border transition-colors ${
+                            usr.status === 'activo'
+                              ? 'border-[#E3E1DA] text-[#585757] hover:border-[#E17475] hover:text-[#A41214] bg-white'
+                              : 'border-[#034991]/30 text-[#034991] hover:bg-[#034991]/5 bg-white'
+                          } disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:border-[#E3E1DA] disabled:hover:text-[#585757]`}
+                        >
+                          {usr.status === 'activo' ? 'Desactivar' : 'Activar'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -451,6 +505,101 @@ export const UserManagementView: React.FC<UserManagementViewProps> = ({ session 
               <button
                 type="button"
                 onClick={() => setIsModalOpen(false)}
+                className="px-3 py-2 text-xs font-semibold text-[#585757] hover:text-[#262624] transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 5. Modal "Cambiar de campus" (solo jefatura) */}
+      {usuarioEnEdicion && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-200">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Cambiar de campus"
+            className="w-full max-w-md bg-white border border-[#E3E1DA] rounded-xl shadow-xl overflow-hidden flex flex-col max-h-[92vh]"
+          >
+            {/* Red Accent Top Border */}
+            <div className="w-full h-1 bg-[#990000]" />
+
+            <div className="px-5 py-3.5 border-b border-[#E3E1DA] flex items-center justify-between shrink-0">
+              <div>
+                <h3 className="text-base font-medium text-[#262624] font-goudy">
+                  Cambiar de campus
+                </h3>
+                <p className="text-[11px] text-[#6B6A64] mt-0.5">
+                  {usuarioEnEdicion.fullName} · {usuarioEnEdicion.email}
+                </p>
+              </div>
+              <button
+                onClick={() => setUsuarioEnEdicion(null)}
+                className="text-[#6B6A64] hover:text-[#262624] p-1 rounded-lg hover:bg-[#F7F6F4] transition-colors"
+                aria-label="Cerrar modal"
+              >
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form
+              id="form-campus"
+              onSubmit={handleGuardarCampus}
+              className="px-5 py-4 space-y-3.5"
+            >
+              {edicionError && (
+                <div className="p-2.5 bg-[#FAE8E8] border border-[#F0B9BA] text-[#901012] text-xs rounded-lg">
+                  {edicionError}
+                </div>
+              )}
+
+              <div>
+                <label
+                  htmlFor="campo-campus-edicion"
+                  className="block text-[11px] font-semibold text-[#585757] uppercase tracking-wider mb-1"
+                >
+                  Campus <span className="text-[#990000]">*</span>
+                </label>
+                <select
+                  id="campo-campus-edicion"
+                  value={campusEdicion}
+                  onChange={(e) => setCampusEdicion(e.target.value as CampusId)}
+                  className="w-full px-3 py-2 rounded-lg border border-[#E3E1DA] focus:border-[#990000] focus:ring-1 focus:ring-[#990000] outline-none text-sm text-[#262624] bg-white cursor-pointer"
+                >
+                  <option value="nicoya">Nicoya — Nayuribe</option>
+                  <option value="liberia">Liberia — Rose Marie</option>
+                </select>
+              </div>
+
+              <p className="text-[11px] text-[#6B6A64] italic">
+                La cuenta pasará a verse y a registrar en el campus elegido, y
+                aparecerá en su selector de asistentes.
+              </p>
+
+              {usuarioEnEdicion.id === session.userId && (
+                <div className="p-2.5 bg-[#FFF7ED] border border-[#FED7AA] text-[#9A3412] text-xs rounded-lg">
+                  Esta es tu propia cuenta: tu sede de origen cambiará a partir
+                  de tu próximo ingreso.
+                </div>
+              )}
+            </form>
+
+            <div className="px-5 py-3 border-t border-[#E3E1DA] flex items-center justify-end gap-2 shrink-0 bg-[#FCFCFB]">
+              <button
+                type="submit"
+                form="form-campus"
+                disabled={guardandoEdicion}
+                className="px-4 py-2 bg-[#990000] hover:bg-[#CD1719] active:bg-[#A41214] text-white text-xs font-semibold rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-[#990000] focus:ring-offset-2 disabled:opacity-70"
+              >
+                {guardandoEdicion ? 'Guardando...' : 'Guardar campus'}
+              </button>
+              <button
+                type="button"
+                onClick={() => setUsuarioEnEdicion(null)}
                 className="px-3 py-2 text-xs font-semibold text-[#585757] hover:text-[#262624] transition-colors"
               >
                 Cancelar
