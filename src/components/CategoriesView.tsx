@@ -645,7 +645,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                 <option value="simple">Cantidad (simple)</option>
                 <option value="doble">Cantidad + Personas (doble)</option>
                 <option value="triple">Cantidad + Personas + Tiempo (capacitación)</option>
-                <option value="asistentes">Evento + Asistentes (Desarrollo Profecional)</option>
+                <option value="asistentes">Evento + Asistentes (Desarrollo Profesional)</option>
                 <option value="metas">Meta (texto libre) — POA</option>
                 <option value="evidencia">Meta + Evidencia (enlace) — POA</option>
               </select>

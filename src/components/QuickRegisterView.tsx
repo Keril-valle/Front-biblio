@@ -613,7 +613,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             )}
 
             {/* Cuadrito "+ Agregar capacitación": solo la jefatura y solo en
-                Desarrollo Profecional, junto a las capacitaciones. Su modal se
+                Desarrollo Profesional, junto a las capacitaciones. Su modal se
                 dibuja en un portal, así que este bloque puede vivir dentro del
                 <form> de registro sin crear un <form> anidado. */}
             {esJefatura && moduloId === MODULO_DESCARROLLO_PERSONAL && (
@@ -720,7 +720,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             </div>
             )}
 
-            {/* Desarrollo Profecional: se elige quién la recibió. Sin cantidad,
+            {/* Desarrollo Profesional: se elige quién la recibió. Sin cantidad,
                 fecha ni duración: ya vienen de la capacitación creada. */}
             {esAsistentes && (
               <div className="space-y-4">
