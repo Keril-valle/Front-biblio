@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export type ToastTone = 'success' | 'info' | 'error';
 
@@ -15,15 +16,21 @@ interface ToastProps {
 }
 
 const TONE_STYLES: Record<ToastTone, string> = {
-  success: 'border-[#9AB6D3] bg-[#E6EDF4] text-[#023366]',
-  info: 'border-[#034991]/25 bg-[#034991]/5 text-[#262624]',
-  error: 'border-[#F0B9BA] bg-[#FAE8E8] text-[#901012]',
+  success: 'border-[var(--una-blue-40)]',
+  info: 'border-[var(--border-gray)]',
+  error: 'border-[var(--una-red-30)]',
 };
 
 const TONE_ICON: Record<ToastTone, string> = {
-  success: 'text-[#034991]',
-  info: 'text-[#034991]',
-  error: 'text-[#A41214]',
+  success: 'bg-[var(--una-blue-10)] text-[var(--una-blue)]',
+  info: 'bg-[var(--una-blue-10)] text-[var(--una-blue)]',
+  error: 'bg-[var(--una-red-10)] text-[var(--una-red-dark)]',
+};
+
+const TONE_TITLE: Record<ToastTone, string> = {
+  success: 'Operación exitosa',
+  info: 'Información',
+  error: 'No se pudo completar la acción',
 };
 
 export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose }) => {
@@ -35,20 +42,22 @@ export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose 
 
   if (!toast) return null;
 
-  return (
+  return createPortal(
     <div
-      className="pointer-events-none fixed right-4 top-4 z-50 sm:right-6 sm:top-6"
+      className="pointer-events-none fixed right-4 top-4 z-[100] sm:right-6 sm:top-6"
       role="status"
       aria-live="polite"
+      aria-atomic="true"
     >
       <div
         key={toast.id}
-        className={`toast-in pointer-events-auto flex w-[calc(100vw-2rem)] max-w-md items-center gap-2.5 rounded-xl border px-4 py-3 text-sm font-medium shadow-lg ${TONE_STYLES[toast.tone]}`}
+        className={`toast-in pointer-events-auto flex w-[calc(100vw-2rem)] max-w-md items-start gap-3 rounded-xl border bg-[var(--surface-white)] p-4 text-sm text-[var(--text-primary)] shadow-md ${TONE_STYLES[toast.tone]}`}
       >
+        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${TONE_ICON[toast.tone]}`}>
         {toast.tone === 'success' && (
           <svg
             aria-hidden
-            className={`h-5 w-5 shrink-0 ${TONE_ICON[toast.tone]}`}
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -64,7 +73,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose 
         {toast.tone === 'info' && (
           <svg
             aria-hidden
-            className={`h-5 w-5 shrink-0 ${TONE_ICON[toast.tone]}`}
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -80,7 +89,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose 
         {toast.tone === 'error' && (
           <svg
             aria-hidden
-            className={`h-5 w-5 shrink-0 ${TONE_ICON[toast.tone]}`}
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill="none"
             stroke="currentColor"
@@ -93,12 +102,16 @@ export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose 
             />
           </svg>
         )}
-        <p className="flex-1 leading-snug">{toast.message}</p>
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="font-semibold leading-5">{TONE_TITLE[toast.tone]}</p>
+          <p className="mt-1 break-words leading-5 text-[var(--una-gray-digital)]">{toast.message}</p>
+        </div>
         <button
           type="button"
           onClick={onClose}
           aria-label="Cerrar aviso"
-          className="rounded-md p-1 opacity-60 transition-opacity hover:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-current"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-[var(--text-secondary)] transition-colors hover:bg-[var(--surface-gray-50)] hover:text-[var(--text-primary)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--una-blue)]"
         >
           <svg
             aria-hidden
@@ -112,6 +125,7 @@ export const Toast: React.FC<ToastProps> = ({ toast, durationMs = 3500, onClose 
           </svg>
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { CAMPUSES } from '../data/campuses';
 import { api } from '../api/client';
@@ -14,7 +14,8 @@ import {
 } from '../types';
 import { GestionCapacitaciones } from './GestionCapacitaciones';
 import { SelectorAsistentes } from './SelectorAsistentes';
-import { MODULO_DESCARROLLO_PERSONAL } from '../data/modulos';
+import { MODULO_DESCARROLLO_PERSONAL, nombreModuloVisible } from '../data/modulos';
+import { Toast, type ToastItem } from './Toast';
 
 interface QuickRegisterViewProps {
   session: UserSession;
@@ -58,7 +59,8 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
     (paginaSegura - 1) * POR_PAGINA,
     paginaSegura * POR_PAGINA,
   );
-  const [successMsg, setSuccessMsg] = useState('');
+  const [toast, setToast] = useState<ToastItem | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
   const [errorMsg, setErrorMsg] = useState('');
   /**
    * Bloqueo síncrono de envío: `setIsLoading` no se aplica hasta el siguiente
@@ -249,7 +251,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSuccessMsg('');
+    setToast(null);
     setErrorMsg('');
 
     // En Desarrollo Personal el ciclo no se elige: lo deriva el backend de la
@@ -327,7 +329,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
         }),
         serviceType: categoriaSeleccionada?.nombre ?? '',
         userType: esAsistentes
-          ? `${asistentes.length} empleados`
+          ? `${asistentes.length} ${asistentes.length === 1 ? 'empleado' : 'empleados'}`
           : esPoa
             ? `Meta: ${meta.trim()}`
             : metrica === 'triple'
@@ -345,11 +347,13 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
 
       setRecords([nuevoRecord, ...records]);
       setPagina(1);
-      setSuccessMsg(
-        `✓ Registro guardado correctamente (${categoriaSeleccionada?.nombre} — ${
-          esAsistentes ? `${asistentes.length} empleados` : count
+      setToast({
+        id: Date.now(),
+        tone: 'success',
+        message: `Registro guardado correctamente (${categoriaSeleccionada?.nombre} — ${
+          esAsistentes ? `${asistentes.length} ${asistentes.length === 1 ? 'empleado' : 'empleados'}` : count
         } · Campus ${campus.name}).`,
-      );
+      });
       setNotes('');
       setCount(1);
       setCantidadSecundaria('');
@@ -364,12 +368,12 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
     } finally {
       enviandoRef.current = false;
       setIsLoading(false);
-      setTimeout(() => setSuccessMsg(''), 4000);
     }
   };
 
   return (
     <div className="w-full space-y-6">
+      <Toast toast={toast} onClose={closeToast} durationMs={5000} />
       {/* Page Header */}
       <div className="pb-4 border-b border-[#E3E1DA]">
         <div className="flex items-center gap-2 mb-1">
@@ -389,7 +393,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Form Card (2 cols) */}
         <div className="lg:col-span-2 bg-white border border-[#E3E1DA] rounded-2xl p-6 shadow-xs space-y-5">
-          <div className="flex items-center justify-between pb-3 border-b border-[#E3E1DA]">
+          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-[#E3E1DA]">
             <h2 className="text-base font-semibold text-[#262624] font-goudy">
               + Nueva Atención en Ventanilla
             </h2>
@@ -409,13 +413,6 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             Estás en: <strong className="text-[#990000]">Campus {campus.name} — {campus.libraryName}</strong>
             {' '}y aquí se guardará este registro.
           </p>
-
-          {successMsg && (
-            <div className="p-3 bg-[#E6EDF4] border border-[#9AB6D3] text-[#023366] text-xs rounded-lg flex items-center justify-between">
-              <span>{successMsg}</span>
-              <span className="text-[10px] uppercase font-bold text-[#034991]">Guardado</span>
-            </div>
-          )}
 
           {errorMsg && (
             <div className="p-3 bg-[#FAE8E8] border border-[#F0B9BA] text-[#901012] text-xs rounded-lg">
@@ -480,7 +477,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
                           : 'border-[#E3E1DA] bg-white text-[#262624] hover:border-[#990000]'
                       }`}
                     >
-                      {mod.nombre}
+                      {nombreModuloVisible(mod.nombre)}
                     </button>
                   ))}
                 </div>
@@ -577,33 +574,46 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             {/* Capacitación elegida: sus datos fijados y el acceso a editarlos,
                 arriba de los campos de registro para no tener que bajar. */}
             {esAsistentes && categoriaSeleccionada && (
-              <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-[#E3E1DA] bg-[#F7F6F4] px-3 py-2">
-                <span className="text-xs text-[#585757] min-w-0">
-                  <strong className="text-[#262624]">
-                    {categoriaSeleccionada.nombre}
-                  </strong>{' '}
-                  · {categoriaSeleccionada.expositor ?? '—'} ·{' '}
-                  {categoriaSeleccionada.institucion ?? '—'} ·{' '}
-                  {categoriaSeleccionada.duracionMinutos != null
-                    ? formatearDuracion(categoriaSeleccionada.duracionMinutos)
-                    : '—'}{' '}
-                  · {categoriaSeleccionada.fechaEvento?.slice(0, 10) ?? '—'}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setCapacitacionEnEdicion(categoriaSeleccionada)
-                  }
-                  data-testid="editar-capacitacion"
-                  className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[#034991]/40 bg-white px-3 py-1.5 text-xs font-semibold text-[#034991] transition-colors hover:bg-[#E6EDF4] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#034991] focus-visible:ring-offset-1"
-                >
-                  Editar capacitación
-                </button>
-              </div>
+              <section aria-label="Datos de la capacitación" className="space-y-4 rounded-xl border border-[var(--border-gray)] bg-[var(--surface-gray-50)] p-4">
+                <div className="flex flex-wrap items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-xs font-semibold text-[var(--text-secondary)]">Capacitación seleccionada</p>
+                    <h3 className="mt-1 break-words text-base font-semibold text-[var(--text-primary)]">{categoriaSeleccionada.nombre}</h3>
+                  </div>
+                  {esJefatura && (
+                    <button
+                      type="button"
+                      onClick={() => setCapacitacionEnEdicion(categoriaSeleccionada)}
+                      data-testid="editar-capacitacion"
+                      className="min-h-10 shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-[var(--una-blue-40)] bg-[var(--surface-white)] px-3 py-2 text-xs font-semibold text-[var(--una-blue)] transition-colors hover:bg-[var(--una-blue-10)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--una-blue)] focus-visible:ring-offset-2"
+                    >
+                      Editar capacitación
+                    </button>
+                  )}
+                </div>
+                <dl className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                  <div className="min-w-0">
+                    <dt className="text-xs text-[var(--text-secondary)]">Expositor</dt>
+                    <dd className="break-words font-medium text-[var(--text-primary)]">{categoriaSeleccionada.expositor ?? '—'}</dd>
+                  </div>
+                  <div className="min-w-0">
+                    <dt className="text-xs text-[var(--text-secondary)]">Institución o departamento</dt>
+                    <dd className="break-words font-medium text-[var(--text-primary)]">{categoriaSeleccionada.institucion ?? '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--text-secondary)]">Duración</dt>
+                    <dd className="font-medium tabular-nums text-[var(--text-primary)]">{categoriaSeleccionada.duracionMinutos != null ? formatearDuracion(categoriaSeleccionada.duracionMinutos) : '—'}</dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-[var(--text-secondary)]">Fecha</dt>
+                    <dd className="font-medium tabular-nums text-[var(--text-primary)]">{categoriaSeleccionada.fechaEvento?.slice(0, 10) ?? '—'}</dd>
+                  </div>
+                </dl>
+              </section>
             )}
 
             {/* Cuadrito "+ Agregar capacitación": solo la jefatura y solo en
-                Desarrollo Personal, junto a las capacitaciones. Su modal se
+                Desarrollo Profecional, junto a las capacitaciones. Su modal se
                 dibuja en un portal, así que este bloque puede vivir dentro del
                 <form> de registro sin crear un <form> anidado. */}
             {esJefatura && moduloId === MODULO_DESCARROLLO_PERSONAL && (
@@ -710,7 +720,7 @@ export const QuickRegisterView: React.FC<QuickRegisterViewProps> = ({ session })
             </div>
             )}
 
-            {/* Desarrollo Personal: se elige quién la recibió. Sin cantidad,
+            {/* Desarrollo Profecional: se elige quién la recibió. Sin cantidad,
                 fecha ni duración: ya vienen de la capacitación creada. */}
             {esAsistentes && (
               <div className="space-y-4">

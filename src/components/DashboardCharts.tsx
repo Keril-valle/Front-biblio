@@ -13,7 +13,7 @@ import {
   Cell,
 } from 'recharts';
 import type { CicloDto, TipoMetrica } from '../types';
-import { MODULO_DESCARROLLO_PERSONAL } from '../data/modulos';
+import { MODULO_DESCARROLLO_PERSONAL, nombreModuloVisible } from '../data/modulos';
 import { formatearDuracion } from '../utils/duracion';
 import { CategoriaTick } from './CategoriaTick';
 import { useEstadisticasDashboard } from './useEstadisticasDashboard';
@@ -112,7 +112,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const esDesarrolloPersonal = Number(moduloId) === MODULO_DESCARROLLO_PERSONAL;
   const etiquetaMedida =
     medidaComparativo === 'personas' ? 'personas capacitadas' : 'eventos';
-  // Totales del panel de capacitaciones (Desarrollo Personal).
+  // Totales del panel de capacitaciones (  Desarrollo Profecional).
   const totalEventosCapacitacion = capacitaciones.reduce(
     (acc, c) => acc + c.eventos,
     0,
@@ -233,7 +233,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
             <option value="">Todos los módulos</option>
             {modulos.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.nombre}
+                {nombreModuloVisible(m.nombre)}
               </option>
             ))}
           </select>
@@ -426,7 +426,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                 </span>
                 <div
                   role="group"
-                  aria-label="Medida de las barras de Desarrollo Personal"
+                  aria-label="Medida de las barras de Desarrollo Profecional"
                   className="inline-flex items-center rounded-lg border border-[#E3E1DA] bg-[#F7F6F4] p-0.5"
                 >
                   <button
@@ -779,7 +779,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                     <span>
                       <strong className="text-[#262624]">{cat.nombre}</strong>
                       <span className="block text-[11px] text-[#6B6A64]">
-                        {cat.modulo?.nombre} · {etiquetaMetrica(cat.tipoMetrica)}
+                        {cat.modulo ? nombreModuloVisible(cat.modulo.nombre) : ''} · {etiquetaMetrica(cat.tipoMetrica)}
                       </span>
                     </span>
                   </div>
@@ -793,7 +793,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         </div>
       </section>
 
-      {/* 5. Capacitaciones del personal: en Desarrollo Personal la estadística
+      {/* 5. Capacitaciones del personal: en Desarrollo Profecional la estadística
           tiene que decir cuántas personas recibió cada capacitación. */}
       {moduloId === MODULO_DESCARROLLO_PERSONAL && (
         <section
@@ -809,7 +809,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
               </span>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#034991]">
-                  Desarrollo Personal
+                  Desarrollo Profecional
                 </p>
                 <h2 className="mt-0.5 text-lg font-semibold leading-tight text-[#262624] font-goudy">
                   Personas capacitadas por taller

@@ -14,6 +14,7 @@ import type { UserSession } from '../types';
 import { formatearDuracion } from '../utils/duracion';
 import { CategoriaTick } from './CategoriaTick';
 import { useEstadisticasPersonal } from './useEstadisticasPersonal';
+import { nombreModuloVisible } from '../data/modulos';
 
 interface EstadisticasPersonalViewProps {
   session: UserSession;
@@ -316,7 +317,7 @@ export const EstadisticasPersonalView: React.FC<
             <option value="">Todos los módulos</option>
             {modulos.map((m) => (
               <option key={m.id} value={m.id}>
-                {m.nombre}
+                {nombreModuloVisible(m.nombre)}
               </option>
             ))}
           </select>
@@ -692,7 +693,7 @@ export const EstadisticasPersonalView: React.FC<
                           )}
                         </td>
                         <td className="px-3 py-2.5 text-[#585757]">
-                          {fila.moduloNombre}
+                          {nombreModuloVisible(fila.moduloNombre)}
                         </td>
                         <td className="px-3 py-2.5 text-right font-mono text-[#262624] font-semibold">
                           {fila.total.toLocaleString()}
@@ -718,7 +719,7 @@ export const EstadisticasPersonalView: React.FC<
                         className="bg-[#990000]/5 text-xs font-semibold"
                       >
                         <td className="px-3 py-2" colSpan={2}>
-                          Subtotal {subtotal.moduloNombre}
+                          Subtotal {nombreModuloVisible(subtotal.moduloNombre)}
                         </td>
                         <td className="px-3 py-2 text-right font-mono text-[#990000]">
                           {subtotal.total.toLocaleString()}

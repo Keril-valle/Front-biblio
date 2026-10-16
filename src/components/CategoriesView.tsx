@@ -3,6 +3,7 @@ import { api } from '../api/client';
 import { CategoriaDto, ModuloDto, TipoMetrica, UserSession } from '../types';
 import { normalizarTiempoAMinutos } from '../utils/duracion';
 import { Toast, type ToastItem } from './Toast';
+import { nombreModuloVisible } from '../data/modulos';
 
 interface CategoriesViewProps {
   session: UserSession;
@@ -353,7 +354,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                   <option value="">Todos los módulos</option>
                   {modulos.map((m) => (
                     <option key={m.id} value={m.id}>
-                      {m.nombre}
+                      {nombreModuloVisible(m.nombre)}
                     </option>
                   ))}
                 </select>
@@ -602,7 +603,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                 <option value="">Seleccionar módulo...</option>
                 {modulos.map((m) => (
                   <option key={m.id} value={m.id}>
-                    {m.nombre}
+                    {nombreModuloVisible(m.nombre)}
                   </option>
                 ))}
               </select>
@@ -644,7 +645,7 @@ export const CategoriesView: React.FC<CategoriesViewProps> = () => {
                 <option value="simple">Cantidad (simple)</option>
                 <option value="doble">Cantidad + Personas (doble)</option>
                 <option value="triple">Cantidad + Personas + Tiempo (capacitación)</option>
-                <option value="asistentes">Evento + Asistentes (Desarrollo Personal)</option>
+                <option value="asistentes">Evento + Asistentes (Desarrollo Profecional)</option>
                 <option value="metas">Meta (texto libre) — POA</option>
                 <option value="evidencia">Meta + Evidencia (enlace) — POA</option>
               </select>

@@ -193,9 +193,30 @@ describe('QuickRegisterView (registro de atenciones)', () => {
         observaciones: undefined,
       });
     });
-    expect(
-      await screen.findByText(/Registro guardado correctamente/),
-    ).toBeInTheDocument();
+    const toast = await screen.findByRole('status');
+    expect(toast).toHaveTextContent(/Registro guardado correctamente/);
+    expect(toast).toHaveTextContent('Consultas en sala');
+    expect(toast).toHaveTextContent('Campus Nicoya');
+    await user.click(screen.getByRole('button', { name: 'Cerrar aviso' }));
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
+  it('no confirma éxito mientras guarda ni cuando la api falla', async () => {
+    let rechazar!: (error: Error) => void;
+    mockedApi.crearRegistro.mockReturnValue(new Promise((_, reject) => {
+      rechazar = reject;
+    }));
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+    await user.click(await screen.findByText('Servicios'));
+    await user.click(await screen.findByText('Consultas en sala'));
+    await user.click(screen.getByRole('button', { name: '+ Guardar Registro de Atención' }));
+    expect(screen.getByRole('button', { name: 'Guardando...' })).toBeDisabled();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+
+    rechazar(new Error('No se pudo guardar el registro.'));
+    expect(await screen.findByText('No se pudo guardar el registro.')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
   it('muestra en qué campus estás y ahí se guardará', async () => {
@@ -566,23 +587,63 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
   it('el cuadrito "+ Agregar capacitación" solo lo ve la jefatura', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<QuickRegisterView session={session} />);
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
     expect(screen.queryByTestId('agregar-capacitacion')).toBeNull();
     unmount();
 
     render(<QuickRegisterView session={jefa} />);
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
     expect(await screen.findByTestId('agregar-capacitacion')).toBeInTheDocument();
     expect(
       await screen.findByTestId('boton-agregar-capacitacion'),
     ).toBeInTheDocument();
   });
 
+  it('la bibliotecóloga ve los datos pero no puede editar la capacitación', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={session} />);
+    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByRole('button', { name: /Taller de APA/ }));
+
+    const datos = screen.getByRole('region', { name: 'Datos de la capacitación' });
+    expect(datos).toHaveTextContent('Ana Rodríguez');
+    expect(datos).toHaveTextContent('Departamento de Biblioteca');
+    expect(datos).toHaveTextContent('1:30');
+    expect(datos).toHaveTextContent('2026-03-15');
+    expect(screen.queryByRole('button', { name: 'Editar capacitación' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('agregar-capacitacion')).not.toBeInTheDocument();
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+
+    await user.click(await screen.findByLabelText(/Empleado Uno/));
+    await user.click(guardar());
+    expect(await screen.findByRole('status')).toHaveTextContent('Registro guardado correctamente (Taller de APA — 1 empleado · Campus Nicoya).');
+    expect(mockedApi.actualizarCategoria).not.toHaveBeenCalled();
+  });
+
+  it('la jefa puede editar y recibe un toast de éxito al guardar los cambios', async () => {
+    const user = userEvent.setup();
+    render(<QuickRegisterView session={jefa} />);
+    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByRole('button', { name: /Taller de APA/ }));
+    await user.click(screen.getByRole('button', { name: 'Editar capacitación' }));
+    expect(screen.getByRole('dialog', { name: 'Editar capacitación' })).toBeInTheDocument();
+
+    const nombre = screen.getByLabelText(/Nombre de la capacitación/);
+    await user.clear(nombre);
+    await user.type(nombre, 'Taller de APA actualizado');
+    await user.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('Capacitación "Taller de APA actualizado" actualizada con éxito.');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockedApi.actualizarCategoria).toHaveBeenCalledWith(40, expect.objectContaining({ nombre: 'Taller de APA actualizado' }));
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
+  });
+
   it('registra asistentes sin pedir cantidad ni ciclo', async () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);
 
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
     // La capacitación aparece en la grilla de categorías y, para la jefa,
     // también en el listado de gestión: se elige la de la grilla (un botón).
     await user.click(
@@ -626,7 +687,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const jefaEnLiberia: UserSession = { ...jefa, campus: 'liberia', campusId: 2 };
 
     const { rerender } = render(<QuickRegisterView session={jefaEnLiberia} />);
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
 
     await waitFor(() => {
       expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(2);
@@ -643,7 +704,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={session} />);
 
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
 
     await waitFor(() => {
       expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(undefined);
@@ -654,7 +715,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);
 
-    await user.click(await screen.findByText('Desarrollo Personal'));
+    await user.click(await screen.findByText('Desarrollo Profecional'));
     await user.click(await screen.findByTestId('boton-agregar-capacitacion'));
 
     await user.click(screen.getByRole('button', { name: 'Crear capacitación' }));
@@ -690,5 +751,8 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
         tipoMetrica: 'asistentes',
       });
     });
+    expect(await screen.findByRole('status')).toHaveTextContent('Capacitación "Taller de APA" creada con éxito.');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(mockedApi.crearRegistro).not.toHaveBeenCalled();
   });
 });
