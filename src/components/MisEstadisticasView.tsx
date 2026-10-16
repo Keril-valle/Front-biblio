@@ -16,6 +16,7 @@ import type { UserSession } from '../types';
 import { formatearDuracion } from '../utils/duracion';
 import { CategoriaTick } from './CategoriaTick';
 import { useMisEstadisticas } from './useMisEstadisticas';
+import { nombreModuloVisible } from '../data/modulos';
 
 interface MisEstadisticasViewProps {
   session: UserSession;
@@ -174,13 +175,13 @@ export const MisEstadisticasView: React.FC<MisEstadisticasViewProps> = ({
   const modulosDona = (resultado?.subtotales ?? [])
     .filter((m) => m.total > 0)
     .sort((a, b) => b.total - a.total)
-    .map((m) => ({ nombre: m.moduloNombre, total: m.total }));
+    .map((m) => ({ nombre: nombreModuloVisible(m.moduloNombre), total: m.total }));
   const moduloPrincipal = modulosDona[0];
   const moduloSeleccionado = modulos.find((m) => m.id === moduloId);
   /** Barras laterales de "Todos los módulos": atenciones y personas por módulo. */
   const datosModulos: FilaBarras[] = (resultado?.subtotales ?? [])
     .map((m) => ({
-      nombre: m.moduloNombre,
+      nombre: nombreModuloVisible(m.moduloNombre),
       atenciones: m.total,
       personas: m.totalPersonas,
     }))
@@ -279,7 +280,7 @@ export const MisEstadisticasView: React.FC<MisEstadisticasViewProps> = ({
           <label htmlFor="mis-modulo" className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-[#585757]">Módulo</label>
           <select id="mis-modulo" value={moduloId} onChange={(e) => setModuloId(e.target.value === '' ? '' : Number(e.target.value))} className={claseInput}>
             <option value="">Todos los módulos</option>
-            {modulos.map((m) => <option key={m.id} value={m.id}>{m.nombre}</option>)}
+            {modulos.map((m) => <option key={m.id} value={m.id}>{nombreModuloVisible(m.nombre)}</option>)}
           </select>
         </div>
         <div>
@@ -327,7 +328,7 @@ export const MisEstadisticasView: React.FC<MisEstadisticasViewProps> = ({
                 </div>
                 <aside className="rounded-2xl border border-[#E3E1DA] bg-[#F7F6F4] p-6">
                   <p className="text-[11px] font-bold uppercase tracking-wider text-[#990000]">Módulo principal</p>
-                  <p className="mt-3 text-xl font-semibold leading-snug text-[#262624]">{moduloPrincipal?.nombre}</p>
+                  <p className="mt-3 text-xl font-semibold leading-snug text-[#262624]">{moduloPrincipal ? nombreModuloVisible(moduloPrincipal.nombre) : ''}</p>
                   <p className="mt-2 font-mono text-3xl font-bold tabular-nums text-[#990000]">{moduloPrincipal?.total.toLocaleString()}</p>
                   <p className="mt-1 text-xs text-[#6B6A64]">atenciones en el período elegido</p>
                 </aside>
@@ -350,7 +351,7 @@ export const MisEstadisticasView: React.FC<MisEstadisticasViewProps> = ({
           ) : (
             <section className="rounded-2xl border border-[#E3E1DA] bg-white p-6 shadow-xs">
               <div className="mb-4">
-                <h2 className="text-sm font-semibold uppercase tracking-wider text-[#262624]">Servicios en {moduloSeleccionado?.nombre}</h2>
+                <h2 className="text-sm font-semibold uppercase tracking-wider text-[#262624]">Servicios en {moduloSeleccionado ? nombreModuloVisible(moduloSeleccionado.nombre) : ''}</h2>
                 <p className="mt-1 text-xs text-[#6B6A64]">Atenciones y personas de tus registros, con los filtros activos.</p>
               </div>
               {/* Un módulo concreto → barras verticales con etiquetas rotadas */}
@@ -365,7 +366,7 @@ export const MisEstadisticasView: React.FC<MisEstadisticasViewProps> = ({
 
           <section className="rounded-2xl border border-[#E3E1DA] bg-white p-6 shadow-xs">
             <h2 className="text-sm font-semibold uppercase tracking-wider text-[#262624]">Detalle por servicio</h2>
-            <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-[#E3E1DA] text-[11px] uppercase tracking-wider text-[#585757]"><th className="px-2 py-2">Módulo</th><th className="px-2 py-2">Servicio</th><th className="px-2 py-2 text-right">Atenciones</th><th className="px-2 py-2 text-right">Personas</th><th className="px-2 py-2 text-right">Tiempo</th></tr></thead><tbody>{resultado.filas.map((fila) => <tr key={`${fila.origen}-${fila.categoriaId}`} className="border-b border-[#E3E1DA]/70"><td className="px-2 py-2.5 text-[#585757]">{fila.moduloNombre}</td><td className="px-2 py-2.5 font-medium text-[#262624]">{fila.categoriaNombre}</td><td className="px-2 py-2.5 text-right font-mono font-semibold text-[#990000]">{fila.total.toLocaleString()}</td><td className="px-2 py-2.5 text-right font-mono text-[#034991]">{fila.totalPersonas.toLocaleString()}</td><td className="px-2 py-2.5 text-right font-mono text-[#585757]">{formatearDuracion(fila.totalTiempo)}</td></tr>)}</tbody></table></div>
+            <div className="mt-4 overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-[#E3E1DA] text-[11px] uppercase tracking-wider text-[#585757]"><th className="px-2 py-2">Módulo</th><th className="px-2 py-2">Servicio</th><th className="px-2 py-2 text-right">Atenciones</th><th className="px-2 py-2 text-right">Personas</th><th className="px-2 py-2 text-right">Tiempo</th></tr></thead><tbody>{resultado.filas.map((fila) => <tr key={`${fila.origen}-${fila.categoriaId}`} className="border-b border-[#E3E1DA]/70">            <td className="px-2 py-2.5 text-[#585757]">{nombreModuloVisible(fila.moduloNombre)}</td><td className="px-2 py-2.5 font-medium text-[#262624]">{fila.categoriaNombre}</td><td className="px-2 py-2.5 text-right font-mono font-semibold text-[#990000]">{fila.total.toLocaleString()}</td><td className="px-2 py-2.5 text-right font-mono text-[#034991]">{fila.totalPersonas.toLocaleString()}</td><td className="px-2 py-2.5 text-right font-mono text-[#585757]">{formatearDuracion(fila.totalTiempo)}</td></tr>)}</tbody></table></div>
           </section>
         </>
       )}

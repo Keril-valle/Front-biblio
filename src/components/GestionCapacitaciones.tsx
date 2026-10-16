@@ -1,8 +1,9 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { api } from '../api/client';
 import { formatearDuracion, normalizarTiempoAMinutos } from '../utils/duracion';
 import type { CategoriaDto } from '../types';
+import { Toast, type ToastItem } from './Toast';
 
 interface GestionCapacitacionesProps {
   moduloId: number;
@@ -63,7 +64,8 @@ export const GestionCapacitaciones: React.FC<GestionCapacitacionesProps> = ({
   const enviandoRef = useRef(false);
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState('');
-  const [exito, setExito] = useState('');
+  const [toast, setToast] = useState<ToastItem | null>(null);
+  const closeToast = useCallback(() => setToast(null), []);
 
   useEffect(() => {
     if (!editando) return;
@@ -121,7 +123,7 @@ export const GestionCapacitaciones: React.FC<GestionCapacitacionesProps> = ({
 
   const guardar = async (e: React.FormEvent) => {
     e.preventDefault();
-    setExito('');
+    setToast(null);
 
     if (!form.nombre.trim()) return setError('Indique el nombre de la capacitación.');
     if (!form.expositor.trim())
@@ -148,19 +150,21 @@ export const GestionCapacitaciones: React.FC<GestionCapacitacionesProps> = ({
 
       if (editando) {
         await api.actualizarCategoria(editando.id, cuerpo);
-        setExito(`✓ Capacitación "${cuerpo.nombre}" actualizada.`);
       } else {
         await api.crearCategoria({
           moduloId,
           ...cuerpo,
           tipoMetrica: 'asistentes',
         });
-        setExito(`✓ Capacitación "${cuerpo.nombre}" creada.`);
       }
 
+      setToast({
+        id: Date.now(),
+        tone: 'success',
+        message: `Capacitación "${cuerpo.nombre}" ${editando ? 'actualizada' : 'creada'} con éxito.`,
+      });
       onCambio();
       cerrar();
-      setTimeout(() => setExito(''), 4000);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'No se pudo guardar.');
     } finally {
@@ -172,7 +176,7 @@ export const GestionCapacitaciones: React.FC<GestionCapacitacionesProps> = ({
   return (
     <div
       data-testid="agregar-capacitacion"
-      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-dashed border-[#9AB6D3] bg-[#E6EDF4]/40 px-4 py-3"
+      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-[var(--una-blue-40)] bg-[var(--una-blue-10)] p-4"
     >
       <div className="min-w-0">
         <p className="text-xs font-semibold text-[#023366]">
@@ -192,11 +196,7 @@ export const GestionCapacitaciones: React.FC<GestionCapacitacionesProps> = ({
         + Agregar capacitación
       </button>
 
-      {exito && (
-        <p className="w-full text-xs text-[#023366] bg-[#E6EDF4] border border-[#9AB6D3] rounded-lg px-3 py-2">
-          {exito}
-        </p>
-      )}
+      <Toast toast={toast} onClose={closeToast} durationMs={5000} />
 
       {/* Modal de alta/edición, en portal: ver nota del encabezado. */}
       {abierto &&
