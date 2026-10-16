@@ -8,4 +8,4 @@ export const MODULO_POA = 8;
 export const MODULO_DESCARROLLO_PERSONAL = 9;
 
 export const nombreModuloVisible = (nombre: string): string =>
-  nombre === 'Desarrollo Personal' ? 'Desarrollo Profecional' : nombre;
+  nombre === 'Desarrollo Personal' ? 'Desarrollo Profesional' : nombre;

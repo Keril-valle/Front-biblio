@@ -727,7 +727,7 @@ describe('DashboardCharts (filtros, textos y datos de gráficos)', () => {
     ).toBeInTheDocument();
 
     const selectorMedida = screen.getByRole('group', {
-      name: 'Medida de las barras de Desarrollo Personal',
+      name: 'Medida de las barras de Desarrollo Profesional',
     });
     await user.click(within(selectorMedida).getByRole('button', { name: 'Eventos' }));
     expect(within(selectorMedida).getByRole('button', { name: 'Eventos' })).toHaveAttribute(

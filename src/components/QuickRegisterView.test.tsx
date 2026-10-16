@@ -587,12 +587,12 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
   it('el cuadrito "+ Agregar capacitación" solo lo ve la jefatura', async () => {
     const user = userEvent.setup();
     const { unmount } = render(<QuickRegisterView session={session} />);
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     expect(screen.queryByTestId('agregar-capacitacion')).toBeNull();
     unmount();
 
     render(<QuickRegisterView session={jefa} />);
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     expect(await screen.findByTestId('agregar-capacitacion')).toBeInTheDocument();
     expect(
       await screen.findByTestId('boton-agregar-capacitacion'),
@@ -602,7 +602,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
   it('la bibliotecóloga ve los datos pero no puede editar la capacitación', async () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={session} />);
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     await user.click(await screen.findByRole('button', { name: /Taller de APA/ }));
 
     const datos = screen.getByRole('region', { name: 'Datos de la capacitación' });
@@ -623,7 +623,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
   it('la jefa puede editar y recibe un toast de éxito al guardar los cambios', async () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     await user.click(await screen.findByRole('button', { name: /Taller de APA/ }));
     await user.click(screen.getByRole('button', { name: 'Editar capacitación' }));
     expect(screen.getByRole('dialog', { name: 'Editar capacitación' })).toBeInTheDocument();
@@ -643,7 +643,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);
 
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     // La capacitación aparece en la grilla de categorías y, para la jefa,
     // también en el listado de gestión: se elige la de la grilla (un botón).
     await user.click(
@@ -687,7 +687,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const jefaEnLiberia: UserSession = { ...jefa, campus: 'liberia', campusId: 2 };
 
     const { rerender } = render(<QuickRegisterView session={jefaEnLiberia} />);
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
 
     await waitFor(() => {
       expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(2);
@@ -704,7 +704,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={session} />);
 
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
 
     await waitFor(() => {
       expect(mockedApi.usuariosBasicos).toHaveBeenCalledWith(undefined);
@@ -715,7 +715,7 @@ describe('QuickRegisterView — Desarrollo Personal', () => {
     const user = userEvent.setup();
     render(<QuickRegisterView session={jefa} />);
 
-    await user.click(await screen.findByText('Desarrollo Profecional'));
+    await user.click(await screen.findByText('Desarrollo Profesional'));
     await user.click(await screen.findByTestId('boton-agregar-capacitacion'));
 
     await user.click(screen.getByRole('button', { name: 'Crear capacitación' }));

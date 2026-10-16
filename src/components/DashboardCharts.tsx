@@ -112,7 +112,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
   const esDesarrolloPersonal = Number(moduloId) === MODULO_DESCARROLLO_PERSONAL;
   const etiquetaMedida =
     medidaComparativo === 'personas' ? 'personas capacitadas' : 'eventos';
-  // Totales del panel de capacitaciones (  Desarrollo Profecional).
+  // Totales del panel de capacitaciones (  Desarrollo Profesional).
   const totalEventosCapacitacion = capacitaciones.reduce(
     (acc, c) => acc + c.eventos,
     0,
@@ -426,7 +426,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
                 </span>
                 <div
                   role="group"
-                  aria-label="Medida de las barras de Desarrollo Profecional"
+                  aria-label="Medida de las barras de Desarrollo Profesional"
                   className="inline-flex items-center rounded-lg border border-[#E3E1DA] bg-[#F7F6F4] p-0.5"
                 >
                   <button
@@ -793,7 +793,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
         </div>
       </section>
 
-      {/* 5. Capacitaciones del personal: en Desarrollo Profecional la estadística
+      {/* 5. Capacitaciones del personal: en Desarrollo Profesional la estadística
           tiene que decir cuántas personas recibió cada capacitación. */}
       {moduloId === MODULO_DESCARROLLO_PERSONAL && (
         <section
@@ -809,7 +809,7 @@ export const DashboardCharts: React.FC<DashboardChartsProps> = ({ role }) => {
               </span>
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-[#034991]">
-                  Desarrollo Profecional
+                  Desarrollo Profesional
                 </p>
                 <h2 className="mt-0.5 text-lg font-semibold leading-tight text-[#262624] font-goudy">
                   Personas capacitadas por taller
