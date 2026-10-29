@@ -243,6 +243,151 @@ export interface PorAnioDto {
   totalTiempo: number;
 }
 
+// ===== Reportes configurables (PDF y Excel) =====
+
+export type SeccionReporte =
+  | 'resumen'
+  | 'modulos'
+  | 'poa'
+  | 'capacitaciones'
+  | 'personal';
+
+export interface FiltrosReporteDto {
+  cicloId?: number;
+  anio?: number;
+  desde?: string;
+  hasta?: string;
+  sedeId?: number;
+  moduloIds?: number[];
+  categoriaIds?: number[];
+  usuarioId?: string;
+  secciones?: SeccionReporte[];
+  graficos?: boolean;
+  membrete?: boolean;
+}
+
+export interface FilaReporteDto {
+  categoriaId: number;
+  categoria: string;
+  categoriaPadreId: number | null;
+  categoriaPadre: string;
+  moduloId: number;
+  modulo: string;
+  tipoMetrica: string;
+  tipo: string;
+  cantidad: number;
+  personas: number;
+  minutos: number;
+  registros: number;
+}
+
+export interface ResumenModuloDto {
+  moduloId: number;
+  modulo: string;
+  cantidad: number;
+  personas: number;
+  minutos: number;
+  porcentaje: number;
+}
+
+export interface ResumenReporteDto {
+  cantidad: number;
+  personas: number;
+  minutos: number;
+  registros: number;
+  eventos: number;
+  porModulo: ResumenModuloDto[];
+}
+
+export interface BloqueModuloReporteDto {
+  moduloId: number;
+  modulo: string;
+  cantidad: number;
+  personas: number;
+  minutos: number;
+  filas: FilaReporteDto[];
+}
+
+export interface FilaPoaReporteDto {
+  categoria: string;
+  meta: string;
+  evidencia: string;
+  cantidad: number;
+  fecha: string;
+  autor: string;
+}
+
+export interface FilaCapacitacionReporteDto {
+  capacitacion: string;
+  expositor: string;
+  institucion: string;
+  fecha: string;
+  duracionMinutos: number;
+  empleados: string[];
+  asistentes: number;
+}
+
+export interface RankingPersonalDto {
+  empleado: string;
+  campus?: string;
+  atenciones: number;
+  personas: number;
+  minutos: number;
+  registros: number;
+  eventos: number;
+}
+
+export interface DesglosePersonalDto {
+  empleado: string;
+  campus?: string;
+  categoria: string;
+  categoriaPadre: string;
+  modulo: string;
+  tipo: string;
+  cantidad: number;
+  personas: number;
+  minutos: number;
+}
+
+export interface PersonalReporteDto {
+  titulo: string;
+  modo: 'ranking' | 'individual';
+  consolidado: boolean;
+  ranking: RankingPersonalDto[];
+  desglose: DesglosePersonalDto[];
+  totalesRanking: {
+    atenciones: number;
+    personas: number;
+    minutos: number;
+    registros: number;
+    eventos: number;
+  };
+  totalesDesglose: { cantidad: number; personas: number; minutos: number };
+}
+
+export interface MetadatosReporteDto {
+  titulo: string;
+  modo: 'institucional' | 'individual';
+  empleada?: string;
+  campus: string;
+  periodo: string;
+  filtros: string[];
+  nota?: string;
+  generadoEl: string;
+  conMembrete: boolean;
+}
+
+export interface DatosReporteDto {
+  meta: MetadatosReporteDto;
+  secciones: SeccionReporte[];
+  graficos: boolean;
+  resumen?: ResumenReporteDto;
+  modulos?: BloqueModuloReporteDto[];
+  detallePoa?: FilaPoaReporteDto[];
+  detalleCapacitaciones?: FilaCapacitacionReporteDto[];
+  personal?: PersonalReporteDto;
+}
+
 // ===== Tipos para la UI (mapeados) =====
 
 export interface UserAccount {

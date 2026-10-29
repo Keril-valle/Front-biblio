@@ -4,6 +4,8 @@ import {
   CicloDto,
   ComparativoSedesDto,
   ComposicionDto,
+  DatosReporteDto,
+  FiltrosReporteDto,
   KpisDto,
   ModuloDto,
   NivelDesglose,
@@ -412,21 +414,43 @@ export const api = {
   },
 
   // ===== Reportes =====
-  exportarReporte: async (params: {
-    formato: 'pdf' | 'excel';
-    cicloId?: number;
-    anio?: number;
-    sedeId?: number;
-    membrete?: boolean;
-  }): Promise<{ contenido: Blob; nombre: string }> => {
+  /** Parámetros compartidos por la previsualización y la exportación. */
+  paramsReporte: (filtros: FiltrosReporteDto): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (filtros.cicloId) params.set('cicloId', String(filtros.cicloId));
+    if (filtros.anio) params.set('anio', String(filtros.anio));
+    if (filtros.desde) params.set('desde', filtros.desde);
+    if (filtros.hasta) params.set('hasta', filtros.hasta);
+    if (filtros.sedeId) params.set('sedeId', String(filtros.sedeId));
+    if (filtros.moduloIds?.length)
+      params.set('moduloIds', filtros.moduloIds.join(','));
+    if (filtros.categoriaIds?.length)
+      params.set('categoriaIds', filtros.categoriaIds.join(','));
+    if (filtros.usuarioId) params.set('usuarioId', filtros.usuarioId);
+    if (filtros.secciones?.length)
+      params.set('secciones', filtros.secciones.join(','));
+    if (filtros.graficos !== undefined)
+      params.set('graficos', String(filtros.graficos));
+    if (filtros.membrete !== undefined)
+      params.set('membrete', String(filtros.membrete));
+    return params;
+  },
+
+  /** Datos del reporte para revisar antes de descargarlo. */
+  previsualizarReporte: (
+    filtros: FiltrosReporteDto,
+    signal?: AbortSignal,
+  ): Promise<DatosReporteDto> => {
+    const qs = api.paramsReporte(filtros);
+    return request<DatosReporteDto>(`/reportes/previsualizar?${qs}`, { signal });
+  },
+
+  exportarReporte: async (
+    params: FiltrosReporteDto & { formato: 'pdf' | 'excel' },
+  ): Promise<{ contenido: Blob; nombre: string }> => {
     const token = getToken();
-    const urlParams = new URLSearchParams();
+    const urlParams = api.paramsReporte(params);
     urlParams.set('formato', params.formato);
-    if (params.cicloId) urlParams.set('cicloId', String(params.cicloId));
-    if (params.anio) urlParams.set('anio', String(params.anio));
-    if (params.sedeId) urlParams.set('sedeId', String(params.sedeId));
-    if (params.membrete !== undefined)
-      urlParams.set('membrete', String(params.membrete));
 
     const response = await fetch(
       `${BASE_URL}/reportes/exportar?${urlParams.toString()}`,

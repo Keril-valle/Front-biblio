@@ -88,3 +88,17 @@ describe('SidebarNav estadística por empleado (solo jefatura)', () => {
     ).toBeInTheDocument();
   });
 });
+
+describe('SidebarNav reportes (solo jefatura)', () => {
+  it('la jefa ve Reportes en administración', () => {
+    renderNav({ ...baseSession, role: 'jefa' });
+    expect(screen.getByRole('button', { name: 'Reportes' })).toBeInTheDocument();
+  });
+
+  it('la bibliotecóloga no ve Reportes', () => {
+    renderNav(baseSession);
+    expect(
+      screen.queryByRole('button', { name: 'Reportes' }),
+    ).not.toBeInTheDocument();
+  });
+});
